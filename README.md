@@ -25,7 +25,7 @@ The enclosure in the photo above (a desk display with a touch screen, a presence
 | **3D printing** | Print orientation, overhang and support analysis, and sliced Bambu Studio projects with time and filament per plate. |
 
 <p align="center">
-  <img src="assets/images/assembly-isometric.png" width="32%" alt="Assembly, isometric">
+  <img src="assets/images/exploded-back.png" width="32%" alt="Exploded view from the back: front frame, back body, hinge block, stand leg and pin">
   <img src="assets/images/drawing-hinge-block.png" width="32%" alt="Production drawing made by the skill">
   <img src="assets/images/coupon-c-hinge.png" width="32%" alt="Hinge test coupon">
 </p>

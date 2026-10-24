@@ -56,7 +56,7 @@ C:\Users\<your name>\.claude\skills\solidworks-api
 If you use git:
 
 ```bash
-git clone https://github.com/<owner>/claude-solidworks
+git clone https://github.com/YanirBarHazan/claude-solidworks
 xcopy /E /I claude-solidworks\skill\solidworks-api "%USERPROFILE%\.claude\skills\solidworks-api"
 ```
 

@@ -4,7 +4,8 @@ A desk display for the office: a Sunton ESP32-8048S050 5" touch screen, an M5Sta
 
 <p align="center">
   <img src="../../assets/images/desk-agent-photo.webp" width="360" alt="The printed desk agent">
-  <img src="../../assets/images/assembly-isometric.png" width="420" alt="SolidWorks assembly">
+  <img src="../../assets/images/exploded-back.png" width="400" alt="Exploded view, back">
+  <img src="../../assets/images/exploded-front.png" width="400" alt="Exploded view, front">
 </p>
 
 ## Parts
