@@ -1,0 +1,12 @@
+run,method,what,parts,ok,built,updated,unchanged,failed,wall_s,timing
+step1_all,1.0,"56 parts after a rule change (holes, eye bolts, colours)",56,48,48,0,0,8,3000,from log timestamps
+step12_parts,1.0,"36 new/changed parts (own anchors, trellis, walk cable)",36,36,36,0,0,0,900,from log timestamps
+step16_parts,1.0,"62 changed parts (holes moved, rods, cables); crashed at 46",62,46,46,0,0,16,1182,from log timestamps
+run_all_1,1.2,"all 70 parts, one session, update in place (first run)",70,70,10,4,56,0,1141,measured
+seed_fp,1.3,store fingerprints after a verified run (no SolidWorks),70,70,0,0,0,0,1,measured
+run_all_2,1.3,"all 70 parts, no change, fingerprints",70,70,0,0,70,0,1,measured
+run_hole65,1.3,value change TOP_HOLE1 60->65 on the whole model,70,70,1,36,33,0,909,measured
+run_hole60,1.3,value restored 65->60,70,70,0,36,34,0,868,measured
+run_ancb1500,1.3,value change ANC_OFF_B 2000->1500,70,70,2,10,58,0,264,measured
+run_planes,1.3,named reference planes appended to 8 parts (mates),70,70,0,8,62,0,771,measured
+run_eye15,1.3,measured eye-bolt ring (EYE_ID 30->15): cable lengths,,,,,,,,

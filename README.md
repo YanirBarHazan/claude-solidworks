@@ -22,6 +22,7 @@ The enclosure in the photo above (a desk display with a touch screen, a presence
   crashes, 6-digit globals...). [Version notes](skill/solidworks-api/references/version_notes.md)
 - **The whole day, measured:** timeline, method versions 1.0-1.4, time and tokens per task, what worked and what
   didn't. [Field log](skill/solidworks-api/references/field_log_2026-11-09.md) | [Example](examples/large-structure/README.md) | [Roadmap](skill/solidworks-api/ROADMAP.md)
+- **Raw field data** (every run, every part, versions compared, errors, cost per task, as CSV): [field-data](field-data/README.md)
 
 ## What it can do
 

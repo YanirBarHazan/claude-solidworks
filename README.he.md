@@ -36,6 +36,7 @@
   הקונפיגורציות, משתנים גלובליים בדיוק 6 ספרות...). [הערות גרסה](skill/solidworks-api/references/version_notes.md)
 - **כל היום, במדידה:** ציר זמן, גרסאות השיטה 1.0 עד 1.4, זמן וטוקנים לכל משימה, מה עבד ומה לא.
   [יומן שטח](skill/solidworks-api/references/field_log_2026-11-09.md) | [דוגמה](examples/large-structure/README.md) | [מפת דרכים](skill/solidworks-api/ROADMAP.md)
+- **נתוני שטח גולמיים** (כל ריצה, כל חלק, השוואת גרסאות, שגיאות, עלות לכל משימה, כקבצי CSV): [field-data](field-data/README.md)
 
 ## מה זה יודע לעשות
 

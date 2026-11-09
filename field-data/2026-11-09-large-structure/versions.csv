@@ -1,0 +1,9 @@
+version,name,change,measured_effect
+1.0,skill as installed,"one Python process per part, every part rebuilt from scratch on every change","pole 43 s, rod 30 s, cable 24 s per build; a value change = 62 rebuilds, ~27 min; edge ids renewed"
+1.1,update in place,PartBuilder update mode + push_globals + verify; stop on hand edits / structure change,"one pole: value change in place, 47 s, 0 rebuilds; holes measured 60->65->60"
+1.1a,6-digit compare,SolidWorks stores globals to ~6 digits (2/3),"no-change run stopped 'updating' V_LOW: unchanged pole 19.8 s, file untouched"
+1.2-exp,configuration per length,configuration-specific global values,"isolated test OK; in batch: internal errors, 2 crashes, ~65 k context tokens -> abandoned"
+1.2,one session + hygiene + one open,"runpy batch, stale locks, stall heartbeat, partsync.check_open","70 parts 19 min: 56 unchanged at 14.6 s, 4 updated, 10 new; 0 rebuilds of existing; ~10 k tokens"
+1.3,fingerprint skip,hash(script + values + props + colour) + file mtime in the manifest,"no-change run of 70 parts: 1 s (was 19 min); value change: 0 rebuilt, 36 updated, ~15 min"
+1.3a,fingerprint scope,shared module hashed only for scripts that import it,before: one shared-module edit reopened all 70 parts (13 min)
+1.4,mates on named planes,planes appended in place; plane-to-plane mates; transform check after solve,"8 parts got planes in place, 0 rebuilds; sub-assemblies in progress"

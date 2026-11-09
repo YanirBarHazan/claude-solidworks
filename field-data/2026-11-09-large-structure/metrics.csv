@@ -1,0 +1,5 @@
+time,task,wall_s,built,updated,unchanged,ctx_tokens,plan5h_pct,note
+20:59,baseline,,,,,579711,14,before skill improvements
+21:07,skill items 1-8+10 (code; configured build failing),,0,0,0,621166,23,"+41k ctx tokens, +9% of 5h; 4 failed configured-build attempts, SolidWorks crashed"
+21:45,config debugging + revert to file per length,,0,0,0,686343,38,"+65k ctx: configured-part debugging, 2 SolidWorks crashes (our config code)"
+22:05,run all 70 parts (update in place one session),1141,10,4,56,696502,42,"+10k ctx only; 0 rebuilds of existing parts; unchanged check 14.6 s/part"
