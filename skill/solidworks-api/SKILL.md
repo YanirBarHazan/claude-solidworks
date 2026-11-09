@@ -19,8 +19,17 @@ quirks, and a habit of never trusting geometry that hasn't been measured.
 4. If several SolidWorks versions are installed, `sw_common` uses the folder of the running
    SLDWORKS.exe (override `SW_DIR`). Check add-ins you will need (e.g. Motion: `cmotionsw.dll`
    in that folder) *before* promising a feature — tell the user early if it's missing.
+5. **Version guard.** If the project targets an older SolidWorks (files go to a PDM/team on that version),
+   set `SW_REQUIRE_REV` (e.g. `27.` for 2019) and refuse to work on any other running version: a newer save
+   can never be reopened by the older one. Read `references/version_notes.md` for known version issues.
+6. For a project (not a one-off part), the smoke test can be replaced by a one-minute project check:
+   one parametric part, edit test, save/reopen, small assembly, and whatever the project needs at the end
+   (e.g. Pack and Go), all in the project folder and path.
 
 ## 1. Engineering before modeling
+**Ask the whole intake in one round** (`references/intake.md`): datums, attach features, corners/ends/
+T-junctions, shared items, allowed overlaps, files vs configurations, PDM properties, purchased parts.
+For layout-driven models, run the Python layout + clearance check on the rules before any CAD.
 Read `references/engineering.md` now: fits/wall table, snap-fit and detent formulas, PCB clamping,
 stand geometry, standard component sizes for sanity checks, and the process that avoided rework.
 - **Interrogate the measurements.** Cross-check what the user gives you (hole edge distance + diameter
@@ -46,6 +55,24 @@ stand geometry, standard component sizes for sanity checks, and the process that
   profile details. Name every feature and sketch meaningfully.
 - Raw API for anything the library doesn't cover — first read `references/pitfalls.md`; it lists
   47 traps with fixes (out-params, IDispatch args, selection marks, cut direction, mates...).
+- **Update in place by default, rebuild only when the structure changes.** A changed value (global
+  variable, colour, custom property) = open the existing part, `set_param` / set the property, rebuild,
+  verify, save. Build from scratch only when a feature is added, removed or redefined. In the field test
+  ~200 parts were rebuilt from scratch and 0 updated; about a third of those rebuilds were avoidable, and
+  every rebuild renews edge ids (drawings dangle). Use `partsync.decide` in every part script.
+- **One SolidWorks session for a batch of parts**: per-part connect/open/close overhead was ~60 % of a
+  simple part's 25 s.
+- Give every part that will be mated or attached to **named reference geometry** (`AX_*`, `PL_*`, `PT_*`).
+
+## 2b. Assemblies (read `references/assemblies.md` for anything above ~30 components)
+- Small sub-assemblies (a pole with its fittings, a bracket with bolts): **mates** on named references,
+  fasteners concentric in their holes, verified against the expected transforms.
+- Top level of repetitive structures: sub-assemblies placed by **computed transforms**, loaded hidden,
+  `AddComponents3` in batches of ~100, saved per batch. Say the trade-off to the user (no drag-editing).
+- Purchased fasteners inside sub-assemblies, never loose at the top level; a "simplified" configuration
+  without them.
+- Interference on big assemblies: per sub-assembly + a cut-out check assembly + Python clearances.
+- Layout-following items (cables, rods, purlins): one part with a configuration per length, not a file per length.
 
 ## 3. Verify every part — never report success without numbers
 Run these after each part, print the results, and stop on any failure:
@@ -112,7 +139,8 @@ dimension value AND look at the exported PNG (overlaps, empty sections).
   snap's play must exceed them, or the hook never reaches its groove.
 - **Stop after two failed attempts at the same step** and tell the user what is known; never guess a cause
   to the user ("the screen is locked") without evidence.
-- **Spend fewer credits:** value-only changes -> `set_param`/update mode or the user's own script, never a
+- **Spend fewer credits:** never print long logs or tracebacks to the conversation (one summary line per
+  item, details in `logs/`, last 10 lines only on failure); never `ls` a CAD folder (count instead); value-only changes -> `set_param`/update mode or the user's own script, never a
   rebuild; scripts print one line per result and log details to a file (read only `tail`/`grep`);
   smoke-test a new SolidWorks session first; ask all intake questions in one message; keep status
   messages short.
@@ -138,5 +166,10 @@ dimension value AND look at the exported PNG (overlaps, empty sections).
 - `references/api_cheatsheet.md` — library usage and raw call signatures that are known to work.
 - `references/engineering.md` — design rules and formulas for printed enclosures and mechanisms.
 - `references/drawings.md` — production drawings: recipe, pitfalls, what to put on the sheet.
+- `references/assemblies.md` — placement per level, mates that survive scripting, big-assembly loading and
+  interference, files vs configurations.
+- `references/intake.md` — the one-round question template and pre-CAD clearance check.
+- `references/version_notes.md` — version guard and SolidWorks 2019 findings.
+- `references/field_report_2026-11-09_nethouse.md` — raw field report behind these changes.
 - `references/tools_and_workflow.md` — reading component listings, approval drawings (incl. RTL
   labels), screen access, old STLs, Bambu Studio, and keeping token use low.
