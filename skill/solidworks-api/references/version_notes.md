@@ -8,7 +8,7 @@ older one, ever. `connect()` must refuse unless `RevisionNumber()` starts with t
 (`SW_REQUIRE_REV`, e.g. `27.` = 2019, `28.` = 2020 ... `33.` = 2025). Tell the user to close the other version and
 never to open project files by double-click while two versions are installed.
 
-## SolidWorks 2019 (revision 27.x), net house project, 2026-11-09
+## SolidWorks 2019 (revision 27.x)
 | # | Symptom | Cause | Workaround |
 |---|---|---|---|
 | 1 | `Equations` error 51 after save + reopen (2 of 3 runs) | `IEquationMgr.LinkToFile` to an external txt | do not link; globals live in each part (`--no-link`); a project text file + update script replaces the link |
@@ -19,4 +19,4 @@ never to open project files by double-click while two versions are installed.
 | 6 | Next open hangs on a modal "file in use" dialog | `~$*.sld*` locks left by a crashed instance | before each run with no documents open: delete stale lock files of the project |
 | 7 | Colour read back differs from the value set (0.05 → 0.047) | `MaterialPropertyValues` stored as 8-bit RGB | compare with 1/255 tolerance |
 | 8 | COM blocked, no error | any modal dialog | lock-file hygiene; trace log + stall detector (pitfall 42) |
-| 9 | Hebrew (non-ASCII) project path | worked for parts, assemblies and saves | set `PYTHONIOENCODING=utf-8`; avoid bash heredocs with Hebrew, write files with the file tool |
+| 9 | Non-ASCII project path | worked for parts, assemblies and saves | set `PYTHONIOENCODING=utf-8`; avoid shell heredocs with non-ASCII text, write files with the file tool |

@@ -1,6 +1,6 @@
 # Assemblies: placement, sub-assemblies, mates, big models
 
-Learned on a 738-component net house in SolidWorks 2019 (field report 2026-11-09). Read before building any
+Learned on a ~740-component steel frame structure in SolidWorks 2019. Read before building any
 assembly with more than ~30 components, or any assembly the user will edit by hand.
 
 ## 1. Choose the placement method per level
@@ -54,14 +54,14 @@ Interference over 700+ components hung or disconnected SolidWorks 2019. Instead:
 1. Interference per sub-assembly, with the list of designed overlaps.
 2. A cut-out check assembly built from the same layout code (one corner + one of each special region, ~200 comps).
 3. A Python clearance check over the whole layout (segment/cylinder/box distances) with the allowed-overlap list.
-   Run it **before** building any CAD: three rule conflicts in the field test (anchors coinciding, rods crossing
-   under ground, a cable through a cap) were visible here in seconds.
+   Run it **before** building any CAD: rule conflicts (two items at one point, members crossing, a cable
+   through a cap) are visible here in seconds and cost an hour when found after the build.
 
 ## 6. Files vs configurations
 - Separate files per size: simplest to script and verify; fine up to ~100 files.
 - Items whose length follows the layout (cables, rods, purlins): **one part with a configuration per length**
-  (or update the existing file in place). A file per exact length went from 31 to 53 files after one rule change,
-  and every change forced rebuilds.
+  (or update the existing file in place). A file per exact length multiplies files after every rule change and
+  forces rebuilds.
 
 ## 7. Checks that are not self-consistent
 Layout-driven checks prove that SolidWorks stored what Python computed, not that the rule is right. Add checks from

@@ -1,7 +1,7 @@
 # Intake: one question round before building
 
-Every stop-and-ask round mid-build costs a context reload and often a rebuild. In the net house field test, five
-rounds were caused by decisions nobody had made yet. Ask all of these in one message, before any CAD, and write
+Every stop-and-ask round mid-build costs a context reload and often a rebuild. Most such rounds come from
+decisions nobody has made yet. Ask all of these in one message, before any CAD, and write
 the answers into the plan file.
 
 ## For every part

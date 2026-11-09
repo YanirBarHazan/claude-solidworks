@@ -5,6 +5,10 @@ description: Drive SolidWorks directly from Python (pywin32 COM) to build, check
 
 # SolidWorks through the API
 
+> **Golden rule: never rebuild an existing part to change it.** Open it and update it in place
+> (global variables, properties, appended features). Rebuild from scratch only when its feature structure
+> changes, and say so before doing it. See §2.
+
 Claude runs Python on the same Windows machine as SolidWorks, talks to the running instance over COM,
 builds the model, and **verifies every step itself** — the user never relays error messages.
 What makes this work is less the API than the method: a small library that absorbs the API's
@@ -57,9 +61,9 @@ stand geometry, standard component sizes for sanity checks, and the process that
   47 traps with fixes (out-params, IDispatch args, selection marks, cut direction, mates...).
 - **Update in place by default, rebuild only when the structure changes.** A changed value (global
   variable, colour, custom property) = open the existing part, `set_param` / set the property, rebuild,
-  verify, save. Build from scratch only when a feature is added, removed or redefined. In the field test
-  ~200 parts were rebuilt from scratch and 0 updated; about a third of those rebuilds were avoidable, and
-  every rebuild renews edge ids (drawings dangle). Use `partsync.decide` in every part script.
+  verify, save. Build from scratch only when a feature is added, removed or redefined. Rebuilding by
+  habit wastes most of the build time and renews edge ids (mates and drawings dangle). Use
+  `partsync.decide` in every part script.
 - **One SolidWorks session for a batch of parts**: per-part connect/open/close overhead was ~60 % of a
   simple part's 25 s.
 - Give every part that will be mated or attached to **named reference geometry** (`AX_*`, `PL_*`, `PT_*`).
@@ -170,6 +174,5 @@ dimension value AND look at the exported PNG (overlaps, empty sections).
   interference, files vs configurations.
 - `references/intake.md` — the one-round question template and pre-CAD clearance check.
 - `references/version_notes.md` — version guard and SolidWorks 2019 findings.
-- `references/field_report_2026-11-09_nethouse.md` — raw field report behind these changes.
 - `references/tools_and_workflow.md` — reading component listings, approval drawings (incl. RTL
   labels), screen access, old STLs, Bambu Studio, and keeping token use low.
