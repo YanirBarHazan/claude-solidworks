@@ -118,7 +118,10 @@ class PartBuilder:
         """mm value of a number or expression string."""
         if isinstance(expr, (int, float)):
             return float(expr)
-        return float(eval(expr, {"math": math}, dict(self.params)))
+        # expressions may use SolidWorks syntax (x^2, sqr(), atn()) so the same text works in both
+        py = expr.replace("^", "**")
+        env = {"math": math, "sqr": math.sqrt, "atn": math.atan, "sin": math.sin, "cos": math.cos}
+        return float(eval(py, env, dict(self.params)))
 
     def sw_expr(self, expr):
         if isinstance(expr, (int, float)):
@@ -388,6 +391,106 @@ class PartBuilder:
 
     def volume(self):
         return sum(b.GetMassProperties(1000)[3] for b in self.bodies()) / MM ** 3
+
+    def push_globals(self):
+        """Update mode (ROADMAP 1): write the current params values into the part's existing global variables.
+        Returns [(name, old, new)] for the values that changed; rebuilds once when anything changed."""
+        changed = []
+        for i in range(self.eq.GetCount()):
+            if not self.eq.GlobalVariable(i):
+                continue
+            name = self.eq.Equation(i).split("=")[0].strip().strip('"')
+            if name not in self.params:
+                continue
+            old, new = self.eq.Value(i), float(self.params[name])
+            # SolidWorks keeps global values to ~6 significant digits (2/3 -> 0.666667): compare at that precision
+            if abs(old - new) > 1e-6 * max(1.0, abs(new)):
+                self.eq.SetEquation(i, f'"{name}" = {new!r}')
+                if abs(self.eq.Value(i) - old) < 1e-12 and abs(new - old) > 1e-9:
+                    self.eq.EvaluateAll()
+                changed.append((name, old, new))
+        if changed:
+            self.solve()
+        return changed
+
+    # ---------- configurations - EXPERIMENTAL (references/version_notes.md, 2019 #12-15) ----------
+    # Configuration-specific global values worked in an isolated test on 2019 but raised "Internal application
+    # error" and crashed SolidWorks inside a batch build. Prefer configurations by SUPPRESSION (assemblies.md 6).
+    def config_names(self):
+        return list(self.doc.GetConfigurationNames() or ())
+
+    def ensure_config(self, cfg):
+        """Add configuration cfg if missing. 2019: rename the template's default configuration only AFTER the
+        others were added (renaming first made AddConfiguration2 fail with 'Internal application error')."""
+        if cfg in self.config_names():
+            return False
+        cm = T(self.doc.ConfigurationManager, "IConfigurationManager")
+        if cm.AddConfiguration2(cfg, "", "", 0, "", "", True) is None:
+            raise RuntimeError(f"cannot add configuration {cfg}")
+        return True
+
+    def drop_template_config(self, keep):
+        """New part: delete the template's default configuration once the wanted ones exist."""
+        for n in self.config_names():
+            if n not in keep:
+                self.delete_config(n)
+
+    def _gidx(self, name):
+        for i in range(self.eq.GetCount()):
+            if self.eq.GlobalVariable(i) and self.eq.Equation(i).split("=")[0].strip() == f'"{name}"':
+                return i
+        raise KeyError(f"{name} is not a global variable of this part")
+
+    def cfg_value(self, name, cfg):
+        self.doc.ShowConfiguration2(cfg)
+        return self.eq.Value(self._gidx(name))
+
+    def set_cfg_value(self, name, cfg, value):
+        """Configuration-specific global value. 2019: works only with cfg active (SW2019_NOTES)."""
+        self.doc.ShowConfiguration2(cfg)
+        i = self._gidx(name)
+        self.eq.SetEquationAndConfigurationOption(i, f'"{name}" = {float(value)!r}', C.swSpecifyConfiguration,
+                                                  VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_BSTR, [cfg]))
+        self.eq.EvaluateAll()
+        self.doc.ForceRebuild3(False)
+        got = self.eq.Value(i)
+        if abs(got - float(value)) > 1e-6 * max(1.0, abs(float(value))):
+            raise RuntimeError(f"{name} in configuration {cfg}: set {value}, reads {got}")
+
+    def delete_config(self, cfg):
+        names = self.config_names()
+        if cfg not in names or len(names) < 2:
+            return False
+        if T(self.doc.GetActiveConfiguration(), "IConfiguration").Name == cfg:
+            self.doc.ShowConfiguration2(next(n for n in names if n != cfg))
+        return bool(self.doc.DeleteConfiguration2(cfg))
+
+    def verify(self, expect, params=None, edit=None, tol_mm=1e-3, tol_vol=1e-3):
+        """ROADMAP 4 verify_part: rebuild errors, one body, bbox (sorted extents) and volume vs expect(params),
+        optional edit test (name, value) that is restored. Returns a dict; raises AssertionError on a failure."""
+        p = dict(self.params if params is None else params)
+
+        def measure(pp, tag):
+            errs = self.rebuild_errors()
+            nb = len(self.bodies())
+            lo, hi = self.bbox()
+            size = sorted(h - l for l, h in zip(lo, hi))
+            vol = self.volume()
+            esize, evol = expect(pp)
+            ok = (not errs and nb == 1 and all(abs(a - b) < tol_mm for a, b in zip(size, sorted(esize)))
+                  and abs(vol - evol) / evol < tol_vol)
+            if not ok:
+                raise AssertionError(f"{tag}: errors={errs} bodies={nb} bbox={[round(s, 3) for s in size]} "
+                                     f"expect={[round(s, 3) for s in sorted(esize)]} vol={vol:.1f} expect={evol:.1f}")
+            return size, vol
+        size, vol = measure(p, "check")
+        if edit:
+            k, v = edit
+            self.set_param(k, v)
+            measure({**p, k: v}, f"edit {k}={v}")
+            self.set_param(k, p[k])
+            measure(p, "restore")
+        return {"bbox": size, "volume": vol}
 
     def set_param(self, name, value):
         """Change a global variable (as a user would in the Equations dialog) and rebuild."""

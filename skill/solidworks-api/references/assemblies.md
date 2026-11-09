@@ -67,3 +67,23 @@ Interference over 700+ components hung or disconnected SolidWorks 2019. Instead:
 Layout-driven checks prove that SolidWorks stored what Python computed, not that the rule is right. Add checks from
 first principles: counts derived independently of the layout code, minimum clearances, every cable end on an
 attach feature, one lean vector per facade line, no two components at the same position.
+
+## 8. Mate recipe that scripts well (2019, first use)
+Plane-to-plane mates only, three per component, on named planes:
+- **Our parts**: build them with named planes (`PL_<hole>` through every hole axis, `PL_TOP`, `PL_SEAT`, ...); for a
+  coaxial part: Right/Top planes coincident with the base part's + one axial plane pair (coincident or distance).
+- **Eye bolt / bolt in a hole** (PDM part, its planes renamed Plane1/2/3): ring/plate plane coincident with the base
+  plane that contains the hole axis and the base axis; the plane that contains the shank axis coincident with the
+  hole plane `PL_<hole>`; the plane square to the shank distance-mated to the base plane square to the hole.
+  Nut: the same with its own planes, bearing face on the far side.
+- Insert each component at its computed transform first, fix only the base part, add the mates with
+  `swMateAlignCLOSEST`, rebuild once, then `mate_errors(doc)` must be empty and `transform_error(comp, axes,
+  origin)` <= 0.01 mm / 0.01 deg for every component.
+- An off-axis hole on a round post: a flat nut face touches the curved surface only along a line on the hole axis;
+  move the nut out until its footprint clears the surface (or model a washer) - otherwise interference.
+- A fitting that must point the other way (left/right end posts) is another sub-assembly variant, not a flipped mate.
+
+## 9. Configurations by suppression (user rule, confirmed by 2019 crashes of the alternative)
+The default configuration holds every feature / component; each configuration suppresses all but its own.
+Assemblies: one configuration per variant set (with/without a cable family, terrace width ...), components
+suppressed per configuration. Do not drive lengths with configuration-specific global values on 2019.

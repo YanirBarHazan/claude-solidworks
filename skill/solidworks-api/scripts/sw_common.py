@@ -58,6 +58,12 @@ def connect():
     raw = pythoncom.GetActiveObject("SldWorks.Application")
     disp = raw.QueryInterface(pythoncom.IID_IDispatch)
     sw = swmod.ISldWorks(disp)
+    # version guard (references/version_notes.md): set SW_REQUIRE_REV (e.g. "27." = 2019) when the project targets
+    # an older SolidWorks - a newer save can never be reopened by the older version
+    need = os.environ.get("SW_REQUIRE_REV", "")
+    rev = sw.RevisionNumber()
+    if need and not rev.startswith(need):
+        raise RuntimeError(f"connected SolidWorks is revision {rev}, need {need}*: close the other version")
     if not sw.Visible:      # an instance started without a window: make it a normal session
         sw.Visible = True
     return sw
@@ -119,7 +125,10 @@ def close_out_docs(sw):
         doc = d.GetNext()
     for d in docs:
         p = d.GetPathName()
-        if (p == "" and d.GetTitle() in CREATED) or os.path.normcase(os.path.dirname(p)) == os.path.normcase(OUT):
+        # documents saved in OUT or any sub-folder of it (cad/_test test parts too: left open after a failed run
+        # they block a later SaveAs of the same name), or unsaved documents this process created
+        inside = p != "" and os.path.normcase(os.path.abspath(p)).startswith(os.path.normcase(os.path.abspath(OUT)) + os.sep)
+        if (p == "" and d.GetTitle() in CREATED) or inside:
             closed.append(d.GetTitle())
             sw.CloseDoc(d.GetTitle())
     return closed

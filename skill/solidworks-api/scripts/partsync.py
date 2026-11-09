@@ -63,6 +63,25 @@ def check(sw, path):
     now = part_state(doc)
     if not was_open:          # left open, it blocks a rebuild from saving under the same name
         sw.CloseDoc(doc.GetTitle())
+    rep.update(compare(old, now))
+    return rep
+
+
+def check_open(doc, path):
+    """Drift of an ALREADY OPEN part against its manifest (no second open: ROADMAP 1, one open per update)."""
+    mpath = os.path.abspath(path) + ".manifest.json"
+    rep = {"part": os.path.basename(path), "exists": True, "manifest": os.path.exists(mpath)}
+    if not rep["manifest"]:
+        rep["drift"] = False
+        return rep
+    old = json.load(open(mpath, encoding="utf-8"))["state"]
+    rep.update(compare(old, part_state(doc)))
+    return rep
+
+
+def compare(old, now):
+    """Drift between two part_state snapshots."""
+    rep = {}
     of = {n: (t, s) for n, t, s in old["features"]}
     nf = {n: (t, s) for n, t, s in now["features"]}
     rep["added_features"] = [[n, nf[n][0]] for n in nf if n not in of]

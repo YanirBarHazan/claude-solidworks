@@ -1,0 +1,55 @@
+# Update in place: the runner pattern (measured)
+
+Golden rule: **never rebuild an existing part to change it.** This page is the mechanism that makes it cheap.
+Measured on a 70-part, 738-component structure in SolidWorks 2019 (revision 27.3).
+
+## 1. Decision per part (in this order)
+
+| Step | Test | Action | Cost |
+|---|---|---|---|
+| 1 | Fingerprint in the manifest == current, and the file's mtime == the mtime stored with it | **skip, do not open SolidWorks** | ~0.01 s |
+| 2 | File exists with a manifest | open ONCE in update mode | 15-20 s if unchanged, 20-50 s if updated |
+| 2a | `partsync.check_open(doc, path)` reports drift (hand edits) | stop, exit 3, ask: `--update` / `--adopt` / `--rebuild` | |
+| 2b | dry build raises `SyncConflict` (a feature definition changed) | stop, exit 4, ask before rebuilding | |
+| 2c | otherwise | append new features, `push_globals()`, props/colour only if different; if nothing changed: close, store fingerprint | |
+| 2d | something changed | `save()` (save, close, reopen, 0 errors) -> `verify(expect)` -> store fingerprint | |
+| 3 | No file | build from scratch, full checks incl. the edit test | 24-90 s |
+
+`--rebuild` is the only way to rebuild an existing part and needs the user's explicit consent.
+
+## 2. Fingerprint
+`sha1(part script source + the shared geometry module(s) it imports + repr(sorted(values used)) + props + colour)`,
+stored in `<part>.manifest.json` with the file's mtime after every save. If the user saves the file in SolidWorks
+the mtime changes, so the runner opens it and `partsync` sees the hand edits.
+Scope matters: hashing a shared module into every part's fingerprint made one edit in it reopen all 70 parts (13 min);
+include it only for scripts that import it.
+Seeding: right after a run that verified every file, `--seed-fp` stores the fingerprints without opening anything.
+
+## 3. push_globals
+For every global variable in the part whose name is in the script's values: compare `IEquationMgr.Value(i)` with the
+new value **at 6 significant digits** (SolidWorks stores 2/3 as 0.666667 - an exact compare "changes" it on every run),
+`SetEquationAndConfigurationOption`-free: plain `SetEquation(i, '"NAME" = value')`, one `EvaluateAll` + rebuild.
+
+## 4. One session
+All part scripts run in one Python process (`runpy.run_path`, `sys.argv` set per part, stdout captured to
+`logs/<part>.log`, one summary line printed). Reset the parameter dict from the parameter file before each part.
+On any failure close the documents the part opened, else the next part's `SaveAs` of a document with the same title
+fails (error 1). Stop the batch on exit 3/4 (a user decision is needed).
+
+## 5. Appending features in update mode
+New features in the script (e.g. named reference planes for mates) are appended at the end of the tree of the
+existing file; existing features are skipped; nothing is rebuilt. Seen: 8 parts got 1-7 planes each in place.
+
+## 6. Measured (same model, same machine)
+
+| Scenario | Before (rebuild everything affected) | After |
+|---|---|---|
+| Run with no change, 70 parts | ~19 min (every part rebuilt or opened) | **1 s** (fingerprints) |
+| One value changed (hole position), 70 parts | 62 rebuilt, ~27 min | 0 rebuilt, 36 updated in place, 33 skipped, ~15 min |
+| Same value restored | - | 0 rebuilt, 36 updated, ~14.5 min |
+| Simple part (cable) | 24 s build | 19 s update, 0.01 s skip |
+| Pole with 4-6 holes | 43 s build | 47 s update (3 opens; 1 open after the slim path) |
+| Context tokens for the whole 70-part run | - | ~10 k (one summary line per part) |
+
+## 7. Not worth it (yet)
+A configuration per length driven by configuration-specific global values: see version_notes 2019 #12-15.

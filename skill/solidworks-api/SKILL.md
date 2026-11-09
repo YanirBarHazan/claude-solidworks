@@ -59,24 +59,53 @@ stand geometry, standard component sizes for sanity checks, and the process that
   profile details. Name every feature and sketch meaningfully.
 - Raw API for anything the library doesn't cover — first read `references/pitfalls.md`; it lists
   47 traps with fixes (out-params, IDispatch args, selection marks, cut direction, mates...).
-- **Update in place by default, rebuild only when the structure changes.** A changed value (global
-  variable, colour, custom property) = open the existing part, `set_param` / set the property, rebuild,
-  verify, save. Build from scratch only when a feature is added, removed or redefined. Rebuilding by
-  habit wastes most of the build time and renews edge ids (mates and drawings dangle). Use
-  `partsync.decide` in every part script.
-- **One SolidWorks session for a batch of parts**: per-part connect/open/close overhead was ~60 % of a
-  simple part's 25 s.
-- Give every part that will be mated or attached to **named reference geometry** (`AX_*`, `PL_*`, `PT_*`).
+- **Update in place by default, rebuild only when the structure changes** (`references/update_in_place.md`).
+  The runner pattern, measured on a 70-part model in SolidWorks 2019:
+  1. **Fingerprint first** (hash of the part script + shared geometry module it imports + the values it uses +
+     props + colour, stored in the manifest with the file's mtime). Same fingerprint and file not saved since
+     -> skip without opening SolidWorks: **70 unchanged parts in 1 s instead of 19 min.**
+  2. Otherwise **one open**: `PartBuilder(mode="update")` + `partsync.check_open` (hand edits -> stop, exit 3),
+     dry build (existing features skipped, new ones appended - e.g. reference planes), `push_globals()`
+     (value changes; compare at 6 significant digits), props/colour only if different, save + reopen, `verify()`.
+     A changed feature definition raises `SyncConflict` -> stop (exit 4) and ask before any rebuild.
+  3. New file -> build from scratch with the full checks.
+  Result: a value change touching 36 of 70 parts = 0 rebuilds, ~15 min (before: 62 rebuilds, ~27 min, every
+  edge id renewed). Rebuilding by habit also renews edge ids: mates and drawings dangle.
+- **One SolidWorks session for a batch of parts** (`runpy` in one process, `reset_params()` before each part,
+  one summary line per part, counts built/updated/unchanged at the end). Close the part's documents on any
+  failure, or the next part's SaveAs fails (error 1).
+- **Pre-run hygiene** (`scripts/hygiene.py`): with no documents open, delete stale `~$*` locks; heartbeat that
+  prints `STALL <item>` after 3 min without progress (a modal dialog blocks COM without an error).
+- Give every part that will be mated or attached to **named reference geometry** (`AX_*`, `PL_*`, `PT_*`):
+  e.g. one plane per hole through its axis (`pb.plane("PL_HOLE_X", "L - 160")`), appended in update mode.
+- **Configurations: by suppression** (the default holds every feature/component, each configuration suppresses
+  all but its own). Configuration-specific global values (`SetEquationAndConfigurationOption`) crashed
+  SolidWorks 2019 inside a batch build (version_notes 2019 #12-15) - don't use them on 2019.
+- **Log every SolidWorks/API error in the project's version notes in the same turn** (date | symptom | cause |
+  fixed / workaround / open). At the end of the conversation the log becomes skill changes.
+- **Measure, don't estimate, cost per task**: in the Claude desktop app, the session usage tool gives the
+  context size and the 5-hour plan percentage; log the delta per task with the wall time and the counts
+  (built / updated / unchanged) to `out/metrics.csv` and chart it.
 
 ## 2b. Assemblies (read `references/assemblies.md` for anything above ~30 components)
 - Small sub-assemblies (a pole with its fittings, a bracket with bolts): **mates** on named references,
-  fasteners concentric in their holes, verified against the expected transforms.
-- Top level of repetitive structures: sub-assemblies placed by **computed transforms**, loaded hidden,
-  `AddComponents3` in batches of ~100, saved per batch. Say the trade-off to the user (no drag-editing).
+  fasteners concentric in their holes, verified against the expected transforms. Recipe that scripts well:
+  **plane-to-plane mates only** (`asmtools._mate`, `mate_errors`, `transform_error`): insert each component at its
+  computed transform, fix only the base part, add 3 plane mates per component, rebuild, then every solved
+  transform must equal the computed one (a flipped mate passes the rebuild and fails here). Purchased (PDM)
+  parts get no added references: use their own planes (often renamed `Plane1/2/3`; identify by normal).
+- Top level of repetitive structures: sub-assemblies placed by **computed transforms**,
+  `asmtools.place_many()` (hidden loading, `AddComponents3` batches of ~100, save per batch; 738 comps in 60 s).
+  Say the trade-off to the user (no drag-editing).
+- One sub-assembly per variant; a variant that needs a mirrored fitting (eye bolt left/right) is its own
+  sub-assembly. Use Linear Pattern / Mirror inside a sub-assembly instead of loose repeated components.
 - Purchased fasteners inside sub-assemblies, never loose at the top level; a "simplified" configuration
-  without them.
-- Interference on big assemblies: per sub-assembly + a cut-out check assembly + Python clearances.
-- Layout-following items (cables, rods, purlins): one part with a configuration per length, not a file per length.
+  (by suppression) without them.
+- Interference on big assemblies: per sub-assembly + a cut-out check assembly + Python clearances
+  (run the clearances on the rule set BEFORE any CAD - three rule conflicts were found there in seconds).
+- Layout-following items (cables, rods, purlins): a file per exact length updated in place works and is simple;
+  one part with a configuration per length only by suppression (see above), never configuration-specific
+  equations on 2019.
 
 ## 3. Verify every part — never report success without numbers
 Run these after each part, print the results, and stop on any failure:
