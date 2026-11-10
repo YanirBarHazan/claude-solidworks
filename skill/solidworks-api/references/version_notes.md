@@ -31,6 +31,8 @@ never to open project files by double-click while two versions are installed.
 | 18 | Shell heredocs with long Python fail ("unexpected EOF") | quoting in the shell wrapper | write files with the file tool and run them |
 | 19 | `ISldWorks.VersionHistoryFromFile` missing in the 2019 type library | API age | `IModelDoc2.VersionHistory()` after opening; a file that opens in 2019 was saved by <= 2019 |
 | 20 | `InterferenceDetectionManager` on 738 comps: hang / disconnect | job size | per sub-assembly + ~190-comp cut-out assembly + Python clearances |
+| 21 | Component Linear Pattern by API: `CreateDefinition(swFmLocalLPattern)` + `CreateFeature` returns None; `FeatureLinearPattern5` by selection does nothing | the selection MARKS: seeds must be mark 1, direction-1 axis mark 2, direction-2 axis mark 4 (found by trying 11 variants) | `asmtools.linear_pattern` (`FeatureLinearPattern2`) and `modify_pattern` (count/spacing of an existing pattern in place, survives reopen) |
+| 22 | `MirrorComponents3` (same component instance about a reference plane) | works | use it for symmetric halves of a structure |
 
 ## How this table is kept
 Every new failure gets a row in the same turn (symptom | cause found or suspected | status). Rows 10-20 come from one

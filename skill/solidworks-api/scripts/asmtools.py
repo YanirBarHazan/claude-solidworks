@@ -214,3 +214,49 @@ def transform_error(comp, axes, origin_mm):
         dot = sum(g * e for g, e in zip(got, axes[i]))
         dang = max(dang, math.degrees(math.acos(max(-1.0, min(1.0, dot)))))
     return dpos, dang
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# Component linear pattern (SolidWorks 2019, verified 10/11/2026 - proto_pattern2/3).
+# The ONLY recipe that worked: seed components selected with MARK 1, direction-1 axis MARK 2, direction-2 axis MARK 4,
+# then FeatureManager.FeatureLinearPattern2. (CreateDefinition(swFmLocalLPattern)+CreateFeature returned None;
+# FeatureLinearPattern5 by selection with other marks did nothing.) Count / spacing of an EXISTING pattern change
+# through its definition (AccessSelections + ModifyDefinition), no rebuild of anything.
+def linear_pattern(doc, seeds, axis1, n1, s1_mm, axis2=None, n2=1, s2_mm=0.0, flip1=False, flip2=False, name=None):
+    """seeds: IComponent2 list; axis1/axis2: IFeature (reference axis). Returns the pattern IFeature or raises."""
+    sm = T(doc.SelectionManager, "ISelectionMgr")
+    doc.ClearSelection2(True)
+    for k, c in enumerate(seeds):
+        sd = T(sm.CreateSelectData(), "ISelectData")
+        sd.Mark = 1
+        c.Select4(k > 0, sd, False)
+    axis1.Select2(True, 2)
+    if axis2 is not None:
+        axis2.Select2(True, 4)
+    f = doc.FeatureManager.FeatureLinearPattern2(int(n1), s1_mm * MM, int(n2), s2_mm * MM, flip1, flip2,
+                                                  "NULL", "NULL", False)
+    doc.ClearSelection2(True)
+    if f is None:
+        raise RuntimeError("component linear pattern not created")
+    f = T(f, "IFeature")
+    if name:
+        f.Name = name
+    return f
+
+
+def modify_pattern(doc, feat, n1=None, s1_mm=None, n2=None, s2_mm=None):
+    """Change count / spacing of an existing component linear pattern in place."""
+    data = T(feat.GetDefinition(), "ILocalLinearPatternFeatureData")
+    if not data.AccessSelections(doc, None):
+        raise RuntimeError(f"cannot access {feat.Name}")
+    if n1 is not None:
+        data.D1TotalInstances = int(n1)
+    if s1_mm is not None:
+        data.D1Spacing = s1_mm * MM
+    if n2 is not None:
+        data.D2TotalInstances = int(n2)
+    if s2_mm is not None:
+        data.D2Spacing = s2_mm * MM
+    if not feat.ModifyDefinition(data, doc, None):
+        raise RuntimeError(f"ModifyDefinition failed on {feat.Name}")
+    doc.ForceRebuild3(False)

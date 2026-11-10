@@ -87,3 +87,13 @@ Plane-to-plane mates only, three per component, on named planes:
 The default configuration holds every feature / component; each configuration suppresses all but its own.
 Assemblies: one configuration per variant set (with/without a cable family, terrace width ...), components
 suppressed per configuration. Do not drive lengths with configuration-specific global values on 2019.
+
+## 10. Patterns and mirrors instead of hundreds of placed components (2019, verified)
+- Component linear pattern: `asmtools.linear_pattern(doc, seeds, axis1, n1, s1, axis2, n2, s2, flip1, flip2)`.
+  Selection marks are the whole trick: seeds **mark 1**, direction-1 axis **mark 2**, direction-2 axis **mark 4**,
+  then `FeatureLinearPattern2`. Directions: assembly reference axes (e.g. Top x Front = X).
+- Change count or spacing later without rebuilding anything: `modify_pattern(doc, feat, n1=4, s1_mm=1500)`.
+  Tested: 3x2 -> 4x2, spacing 1000 -> 1500, identical after reopen.
+- Symmetric halves: `MirrorComponents3` about a named plane (same component, no mirrored file).
+- Plan: seed + pattern per repeated family; members whose geometry differs (corners, staggered lines) stay
+  placed by transform. Verify with the same position checks - a pattern that shifts anything fails them.
