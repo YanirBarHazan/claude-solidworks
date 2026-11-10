@@ -97,6 +97,10 @@ stand geometry, standard component sizes for sanity checks, and the process that
 - Top level of repetitive structures: sub-assemblies placed by **computed transforms**,
   `asmtools.place_many()` (hidden loading, `AddComponents3` batches of ~100, save per batch; 738 comps in 60 s).
   Say the trade-off to the user (no drag-editing).
+- **Repeated families as seeds + patterns, not hundreds of placements** (assemblies.md 10-11): `patterns.plan()` on
+  the placement list, then `asmtools.linear_pattern` (2019 recipe: seeds mark 1, axes mark 2 / 4,
+  `FeatureLinearPattern2`); count/spacing changed later with `modify_pattern` - "4 anchors instead of 2" is one value.
+  Measured: 194 -> 95 placed components, exact. Mirrors with `MirrorComponents3`.
 - One sub-assembly per variant; a variant that needs a mirrored fitting (eye bolt left/right) is its own
   sub-assembly. Use Linear Pattern / Mirror inside a sub-assembly instead of loose repeated components.
 - Purchased fasteners inside sub-assemblies, never loose at the top level; a "simplified" configuration

@@ -708,3 +708,8 @@ run_eye15,1.3,CBL-V-TOP-ZT-T-2,OK,updated in place,20.6,CBL_L 6578.06->6581.89
 run_eye15,1.3,CBL-V-TOP-ZT-T-3,OK,updated in place,21.7,CBL_L 6617.01->6620.83
 run_eye15,1.3,CBL-V-TOP-ZT-T-4,OK,updated in place,21.5,CBL_L 6619.8->6623.62
 run_eye15,1.3,CBL-V-TOP-ZT-T-5,OK,updated in place,21.8,CBL_L 6663.66->6667.45
+run_eye15,1.3,CBL-V-TOP-ZT-T-6,OK,updated in place,21.4,CBL_L 6669.31->6673.1
+run_eye15,1.3,CBL-V-TOP-ZT-T-7,OK,updated in place,21.3,CBL_L 6706.15->6709.91
+run_eye15,1.3,CBL-V-TOP-ZT-T-8,OK,updated in place,19.8,CBL_L 6710.26->6714.03
+run_eye15,1.3,CBL-WALK-1,OK,unchanged (opened),9.3,
+run_eye15,1.3,CBL-WALK-2,OK,updated in place,21.1,CBL_L 12065.7->12073.2

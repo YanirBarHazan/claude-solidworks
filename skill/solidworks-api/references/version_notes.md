@@ -33,6 +33,8 @@ never to open project files by double-click while two versions are installed.
 | 20 | `InterferenceDetectionManager` on 738 comps: hang / disconnect | job size | per sub-assembly + ~190-comp cut-out assembly + Python clearances |
 | 21 | Component Linear Pattern by API: `CreateDefinition(swFmLocalLPattern)` + `CreateFeature` returns None; `FeatureLinearPattern5` by selection does nothing | the selection MARKS: seeds must be mark 1, direction-1 axis mark 2, direction-2 axis mark 4 (found by trying 11 variants) | `asmtools.linear_pattern` (`FeatureLinearPattern2`) and `modify_pattern` (count/spacing of an existing pattern in place, survives reopen) |
 | 22 | `MirrorComponents3` (same component instance about a reference plane) | works | use it for symmetric halves of a structure |
+| 23 | `SaveAs` err=1 when saving over an assembly, no `~$` lock file in the folder | the file was open in a SECOND SolidWorks instance (the user viewing it); Windows holds the file | before saving over a shared file test `open(path, "r+b")`; ask the user to close it; never kill their instance |
+| 24 | "object disconnected" on the first document call of a run, the next run fine | VPN dropped (network licence) - confirmed by the user reconnecting it | retry once after the VPN is back |
 
 ## How this table is kept
 Every new failure gets a row in the same turn (symptom | cause found or suspected | status). Rows 10-20 come from one

@@ -27,3 +27,6 @@ After adding: rebuild `dist/solidworks-api.skill`.
 | 14 | Suppression-based configuration helper for parts and assemblies, tested on 2019 | M |
 | 15 | Resume list for long batches (a crash mid-batch restarts at the failed item) | S |
 | 16 | Hole helper that also creates the named plane (`PL_<hole>`) - every mated part needs it | S |
+| 17 | **done** Component linear pattern + modify in place (`asmtools.linear_pattern`, `modify_pattern`) and pattern planner (`scripts/patterns.py`) | - |
+| 18 | Mirror halves in the planner (`MirrorComponents3`), then patterns of sub-assemblies with internal patterns (e.g. an anchor set with N anchors) | M |
+| 19 | Lock check before saving over shared files (second SolidWorks instance) in `save_as` | S |

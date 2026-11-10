@@ -97,3 +97,27 @@ suppressed per configuration. Do not drive lengths with configuration-specific g
 - Symmetric halves: `MirrorComponents3` about a named plane (same component, no mirrored file).
 - Plan: seed + pattern per repeated family; members whose geometry differs (corners, staggered lines) stay
   placed by transform. Verify with the same position checks - a pattern that shifts anything fails them.
+
+## 11. From hundreds of placements to seeds + patterns (measured, 2019)
+`scripts/patterns.py` `plan(items)` takes the same placement list the transform build uses
+(`(file, axes, origin[, configuration])`) and groups items with the same file, configuration and orientation whose
+origins form equally spaced rows along X, and rows that repeat equally along Z, into one seed + a 1- or 2-direction
+linear pattern. It asserts that every pattern reproduces its members exactly; the rest stay single placements.
+Build: place seeds + singles (`AddComponents3`, hidden loading, fixed), assembly axes `AX_X` (Top x Front) and
+`AX_Z` (Top x Right), `linear_pattern()` per pattern. The direction sign of each axis is learned on the first
+pattern (flip and re-check). Final check: the multiset of (file, rotation, origin) of every component in the
+file == the layout's - 0 missing, 0 extra, or it fails.
+
+| Assembly | Components | Placed by transform | Patterns | Build time |
+|---|---|---|---|---|
+| Corner check assembly | 194 | 95 | 48 (covering 99 instances) | 55 s, exact |
+| Main assembly (plan) | 770 | 213 | 117 (covering 674) | - |
+
+What it does not cover yet: items whose geometry differs at corners, T-junctions or staggered lines (they stay
+singles) and mirror halves (`MirrorComponents3` works; next step).
+
+## 12. Before mating a purchased part, check it against the layout rule
+Measure the purchased file first (bbox, cylinders, tori, planes) and check that the rule that places the cable /
+bolt agrees with it. Example: a rectangular cable shackle holds the cable in an end curl 13 mm from the bolt axis
+with the bolt axis square to the cable, while the layout rule put the cable 36-50 mm from a bolt parallel to it -
+caught in Python before any mate, sent to the user as a design question instead of being forced.

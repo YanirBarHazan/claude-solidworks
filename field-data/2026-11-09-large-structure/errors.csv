@@ -13,4 +13,7 @@ date,symptom,cause,status
 2026-11-09,"update run ""changed"" V_LOW every time",6-digit storage of globals,fixed (relative 1e-6 compare)
 2026-11-09,"long bash heredocs fail (""unexpected EOF"")",quoting in the shell wrapper,"process: write files with the file tool, run them"
 2026-11-09,fingerprint included pole_common.py in every part: one change there reopened all 70 parts (13 min),fingerprint scope too wide,fix: include shared modules only for the scripts that import them
+2026-11-09,"eye bolt and nut solved 116.1 mm / 89.4 mm off (other side of the pole axis), nut then inside the pole wall (322.6 mm3)",a DISTANCE mate is two-sided; AlignCLOSEST from the correct start position still solved to the far side,"fix: after solving, a component off its computed transform gets its distance mate Flipped and is re-checked"
+2026-11-09,interference script could not open the check assembly (doc None),relative path to OpenDoc6 (pitfall 38 again),fixed: os.path.abspath on every path argument
+2026-11-09,count check failed on a correct model (T-junction poles have 4 anchors / 8 V),check hard-coded 2 / 4 per pole,fixed: expected count per pole from the layout rules
 2026-11-09,(lesson) configurations,"the user: build configurations by **suppression** (default = all features/components, each configuration suppresses all but its own); configuration-specific equations crashed 2019 here",rule for PLAN 15 and future parts

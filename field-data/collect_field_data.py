@@ -126,7 +126,9 @@ VERSIONS = [
     ("1.3a", "fingerprint scope", "shared module hashed only for scripts that import it",
      "before: one shared-module edit reopened all 70 parts (13 min)"),
     ("1.4", "mates on named planes", "planes appended in place; plane-to-plane mates; transform check after solve",
-     "8 parts got planes in place, 0 rebuilds; sub-assemblies in progress"),
+     "6 sub-assemblies, up to 12 comps / 33 mates each, 0 mate errors, solved = computed 0.0000; distance mates auto-flipped"),
+    ("1.5", "seeds + component linear patterns", "patterns.plan + linear_pattern (marks 1 / 2 / 4, FeatureLinearPattern2)",
+     "corner 194 comps: 95 placed + 48 patterns, exact, 55 s; main plan 770 -> 213 placed (117 patterns)"),
 ]
 write("versions.csv", [dict(version=a, name=b, change=c, measured_effect=d) for a, b, c, d in VERSIONS],
       ["version", "name", "change", "measured_effect"])

@@ -2,21 +2,27 @@
 <rect width="100%" height="100%" fill="#ffffff"/>
 <text x="70" y="28" font-size="16" font-weight="bold">Net house PT-8x8 - cost per task (measured)</text>
 <text x="70" y="46" fill="#555">blue: context tokens spent (k) | orange: SolidWorks wall time (min)</text>
-<rect x="95.3" y="197.4" width="91.2" height="152.6" fill="#2f6fd6"/>
-<text x="140.9" y="193.4" text-anchor="middle">41k</text>
-<rect x="186.5" y="350.0" width="91.2" height="0.0" fill="#e8892b"/>
-<text transform="translate(186.5,364) rotate(28)" fill="#222">21:07 skill items 1-8+10 (code; configur</text>
-<text transform="translate(186.5,378) rotate(28)" fill="#666">built 0 / upd 0 / same 0</text>
-<rect x="348.7" y="110.0" width="91.2" height="240.0" fill="#2f6fd6"/>
-<text x="394.3" y="106.0" text-anchor="middle">65k</text>
-<rect x="439.9" y="350.0" width="91.2" height="0.0" fill="#e8892b"/>
-<text transform="translate(439.9,364) rotate(28)" fill="#222">21:45 config debugging + revert to file </text>
-<text transform="translate(439.9,378) rotate(28)" fill="#666">built 0 / upd 0 / same 0</text>
-<rect x="602.0" y="312.6" width="91.2" height="37.4" fill="#2f6fd6"/>
-<text x="647.6" y="308.6" text-anchor="middle">10k</text>
-<rect x="693.2" y="110.0" width="91.2" height="240.0" fill="#e8892b"/>
-<text x="738.8" y="106.0" text-anchor="middle">19.0m</text>
-<text transform="translate(693.2,364) rotate(28)" fill="#222">22:05 run all 70 parts (update in place </text>
-<text transform="translate(693.2,378) rotate(28)" fill="#666">built 10 / upd 4 / same 56</text>
+<rect x="89.0" y="303.1" width="68.4" height="46.9" fill="#2f6fd6"/>
+<text x="123.2" y="299.1" text-anchor="middle">41k</text>
+<rect x="157.4" y="350.0" width="68.4" height="0.0" fill="#e8892b"/>
+<text transform="translate(157.4,364) rotate(28)" fill="#222">21:07 skill items 1-8+10 (code; configur</text>
+<text transform="translate(157.4,378) rotate(28)" fill="#666">built 0 / upd 0 / same 0</text>
+<rect x="279.0" y="276.3" width="68.4" height="73.7" fill="#2f6fd6"/>
+<text x="313.2" y="272.3" text-anchor="middle">65k</text>
+<rect x="347.4" y="350.0" width="68.4" height="0.0" fill="#e8892b"/>
+<text transform="translate(347.4,364) rotate(28)" fill="#222">21:45 config debugging + revert to file </text>
+<text transform="translate(347.4,378) rotate(28)" fill="#666">built 0 / upd 0 / same 0</text>
+<rect x="469.0" y="338.5" width="68.4" height="11.5" fill="#2f6fd6"/>
+<text x="503.2" y="334.5" text-anchor="middle">10k</text>
+<rect x="537.4" y="110.0" width="68.4" height="240.0" fill="#e8892b"/>
+<text x="571.6" y="106.0" text-anchor="middle">19.0m</text>
+<text transform="translate(537.4,364) rotate(28)" fill="#222">22:05 run all 70 parts (update in place </text>
+<text transform="translate(537.4,378) rotate(28)" fill="#666">built 10 / upd 4 / same 56</text>
+<rect x="659.0" y="110.0" width="68.4" height="240.0" fill="#2f6fd6"/>
+<text x="693.2" y="106.0" text-anchor="middle">212k</text>
+<rect x="727.4" y="338.4" width="68.4" height="11.6" fill="#e8892b"/>
+<text x="761.6" y="334.4" text-anchor="middle">0.9m</text>
+<text transform="translate(727.4,364) rotate(28)" fill="#222">07:38 patterns: API search + planner + c</text>
+<text transform="translate(727.4,378) rotate(28)" fill="#666">built 0 / upd 0 / same 0</text>
 <line x1="70" y1="350" x2="830" y2="350" stroke="#333"/>
 </svg>
