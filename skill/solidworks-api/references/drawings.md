@@ -46,3 +46,7 @@ Worked example: the desk-agent project script `step8_drawing.py` (hinge block) -
 Critical-to-function dims marked `*` with real tolerances (fits), general tolerances in the notes,
 a section through the feature whose depth matters, an iso view, process notes (print orientation,
 inserts, assembly), weight computed from the model, revision field filled.
+
+## Entry point (from SKILL.md v1)
+For a production drawing read `references/drawings.md` and use `scripts/drawtools.py`; check every
+dimension value AND look at the exported PNG (overlaps, empty sections).

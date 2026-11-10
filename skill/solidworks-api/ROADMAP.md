@@ -1,4 +1,33 @@
-# Code changes pending
+# Roadmap
+
+## Version 2 plan (2026-11-10): from "a correct model" to "a model a human can open, understand and change"
+Findings behind it (measured on the 770-component field model, SolidWorks 2019; baseline from `scripts/audit.py`):
+- Top assembly: 213 placed components, **all fixed, 0 mates** (audit score 50/100); 11 sub-assemblies fully mated
+  (score 100). Assemblies are regenerated from zero on any layout value (10 of 17 minutes); hand edits are lost.
+- Parts: 76 of 76 with **no SolidWorks material** (so no mass); 0 default feature names; 119 of 119 sketches fully
+  defined.
+- All geometry knowledge lived in project Python (3,500 lines, ~1,330 of them generic infrastructure written in
+  the conversation). SKILL.md loaded 2,671 words on every use, ~40% about 3D printing.
+
+| # | Phase | Content | Proof |
+|---|---|---|---|
+| 1 | **Foundation + measurement** - done 2026-11-10 | lean SKILL.md (1,012 words, -63%) + module map; dialogue module + project card; `audit.py` | baseline above |
+| 2 | **Design-intent assemblies** | skeleton part (grid, named planes / axes, driven by globals); seeds mated to it instead of fixed; pattern spacing / count linked to assembly equations; **update assemblies in place** | 3x3 cut-out: a value changed inside SolidWorks moves everything; open / rebuild time measured before the full model; audit score |
+| 3 | **Hand + script together** | change detection on every file + automatic backup before any write; two-way value sync (3-way compare); `USER_` features left alone | scenarios: hand value edit, hand feature, both sides edited - nothing lost |
+| 4 | **Project scaffold** | one command creates a project: parameter text file, generic runner, one-command update, verify, cleanup, guide PDF, file-name prefix | field project migrated with an identical result |
+| 5 | **Real engineering data** | SolidWorks materials, mass vs hand calculation, linked properties (mass, material), company templates, Hole Wizard, feature patterns / mirror, fully-defined-sketch gate, tree folders | per part: material, mass check, 0 open sketches |
+| 6 | **Drawings + BOM** | views, sections, model-linked dimensions, BOM + balloons, title block from properties, PDF / DXF | every dimension vs the model; BOM counts = layout counts |
+| 7 | **Sheet metal** | base / edge flange, cuts, flat pattern, bend table / K-factor, DXF | flat pattern size vs hand calculation |
+| 8 | **Simulation** | add-in + licence check; static study (material, fixtures, loads, mesh, run, factor of safety); documented hand calculation when no licence | a case with a known analytic answer |
+| 9 | **Benchmark, other versions, release** | fixed benchmark tasks measured in time and tokens per skill version; run on SolidWorks 2025; "tested on" table; v2 release | v1 vs v2 table |
+
+Cost levers (each measured or to be measured): lean core; one session per phase with a hand-over file; tools that
+run without Claude; scaffold instead of rewriting infrastructure; tested recipe catalogue + API probe script;
+one status file per run; preflight before a run; built-in step timer; save after each unit + resume list.
+
+---
+
+## Version 1 code changes (history)
 
 The guidance in SKILL.md and references/ is updated. These library changes have been prototyped in real use and
 must be added to `scripts/` **and tested on a live SolidWorks** (smoke_test + sync_test must still pass) before

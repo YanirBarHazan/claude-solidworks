@@ -1,211 +1,79 @@
 ---
 name: solidworks-api
-description: Drive SolidWorks directly from Python (pywin32 COM) to build, check and export real parametric parts and assemblies - sketches with dimensions linked to global variables, features, mates, interference checks, Motion studies, STL export, print orientation, overhang/support checks and sliced Bambu Studio projects. Use this whenever the user wants SolidWorks files (.sldprt/.sldasm) made or changed, wants Claude to "work in SolidWorks", design an enclosure/bracket/mechanism/3D-printed part in SolidWorks, check fits or tolerances, run a SolidWorks Motion study, or prepare SolidWorks parts for printing - even if they don't mention the API, pywin32 or COM. Also use when a previous attempt to connect Claude to SolidWorks via plugins/macros failed.
+description: Drive SolidWorks directly from Python (pywin32 COM) as a senior CAD engineer would - real parametric parts and assemblies whose design intent lives in SolidWorks (dimensions linked to global variables, named reference geometry, mates, patterns, configurations by suppression), verified with numbers, updated in place instead of rebuilt, and safe to edit by hand afterwards. Use this whenever the user wants SolidWorks files (.sldprt/.sldasm/.slddrw) made, changed, checked or audited, wants Claude to "work in SolidWorks", design a part, bracket, enclosure, mechanism, frame or large repetitive structure, change values across a model, check fits/interference, make drawings, run a Motion study, or prepare parts for 3D printing - even if they don't mention the API, pywin32 or COM. Also use when a previous attempt to connect Claude to SolidWorks via plugins/macros failed, or to judge how editable an existing model is.
 ---
 
 # SolidWorks through the API
 
-> **Golden rule: never rebuild an existing part to change it.** Open it and update it in place
-> (global variables, properties, appended features). Rebuild from scratch only when its feature structure
-> changes, and say so before doing it. See §2.
+Claude runs Python on the same Windows machine as SolidWorks, talks to the running instance over COM, builds the
+model and **verifies every step itself**. What makes it work is the method, not the API: a small library that
+absorbs the API's quirks, design intent decided before geometry, and never trusting what has not been measured.
 
-Claude runs Python on the same Windows machine as SolidWorks, talks to the running instance over COM,
-builds the model, and **verifies every step itself** — the user never relays error messages.
-What makes this work is less the API than the method: a small library that absorbs the API's
-quirks, and a habit of never trusting geometry that hasn't been measured.
+## Five rules (always)
+1. **Never rebuild an existing part to change it.** Open it and update it in place (global values, equations,
+   properties, appended features). A rebuild is needed only when the feature structure changes - stop and ask first.
+2. **Never report success without numbers.** Parts: rebuild errors, one body, bounding box and volume against a
+   hand calculation, an edit test, save + reopen. Assemblies: solved position = computed position, an explicit
+   list of designed overlaps, counts. Say what was not verified.
+3. **Design intent before geometry.** Decide what drives what (skeleton / named reference geometry, mates,
+   patterns, files vs configurations) and name every feature, sketch, plane and mate. A human must be able to open
+   the model, understand it from the tree and change it. Fixed components are a base, not a method: where a level
+   is placed by computed transforms (large repetitive top levels), say the trade-off and keep it to that level.
+4. **Never overwrite human work silently.** Hand edits are detected before a file is touched; stop and ask
+   (keep / adopt into the parameters / discard). Close only documents you opened; never touch files outside the
+   project.
+5. **Spend few credits.** One summary line per item, details in `logs/` (read only `tail` / `grep`); long runs in
+   the background, saving after each unit; measure a slow step before guessing at it; anything the user will repeat
+   becomes a tool that runs without Claude; log every SolidWorks error in the project's notes in the same turn;
+   keep sessions short with a hand-over file (`references/dialogue.md` 7).
 
-## 0. Setup (once per machine, ~2 min)
-1. SolidWorks open, same Windows user, **not** "Run as administrator" (else COM can't see it).
-2. `pip install pywin32` (numpy optional, for area checks).
-3. Copy `scripts/*.py` from this skill into the project folder (they save parts to `./parts`,
-   or set env `SW_OUT`). Then smoke-test: `python scripts/smoke_test.py` from the skill folder —
-   it builds, edits, reopens, exports and checks a small part, and should print `SMOKE TEST OK`.
-4. If several SolidWorks versions are installed, `sw_common` uses the folder of the running
-   SLDWORKS.exe (override `SW_DIR`). Check add-ins you will need (e.g. Motion: `cmotionsw.dll`
-   in that folder) *before* promising a feature — tell the user early if it's missing.
-5. **Version guard.** If the project targets an older SolidWorks (files go to a PDM/team on that version),
-   set `SW_REQUIRE_REV` (e.g. `27.` for 2019) and refuse to work on any other running version: a newer save
-   can never be reopened by the older one. Read `references/version_notes.md` for known version issues.
-6. For a project (not a one-off part), the smoke test can be replaced by a one-minute project check:
-   one parametric part, edit test, save/reopen, small assembly, and whatever the project needs at the end
-   (e.g. Pack and Go), all in the project folder and path.
+## Workflow
+1. **Setup** (once per machine, `references/setup.md`): SolidWorks open, `pip install pywin32`, copy `scripts/`
+   into the project, `python scripts/smoke_test.py` -> `SMOKE TEST OK`. Set `SW_REQUIRE_REV` when the files must
+   open in an older SolidWorks (a newer save can never be reopened by an older version).
+2. **Dialogue** (`references/dialogue.md`): one design-brief round (who edits later and how, what will change,
+   standards), then a one-page project card (`templates/PROJECT_CARD.md`) approved before building. Gates: one
+   sample part -> one sub-assembly -> the whole model.
+3. **Parameters**: one file, every value with a source tag `[M]` measured, `[D]` datasheet / decision, `[C]`
+   calculated, `[A]` assumption (listed back to the user). Derived geometry in one module. For layout-driven
+   models run the layout and clearance checks in plain Python before any CAD.
+4. **Build** with the library: `PartBuilder` links every dimension to a global variable, so the user edits the part
+   in Tools > Equations. One outline per sketch; shapes through the library (they get proper relations); named
+   reference geometry (`PL_*`, `AX_*`) on everything that will be mated. Raw API only after
+   `references/pitfalls.md`.
+5. **Verify** (`references/verification.md`) after every part and assembly; stop on any failure.
+6. **Deliver**: the files, one command that updates everything from the parameters, a short guide for the
+   engineer, the open assumptions, and the audit score (`scripts/audit.py`).
 
-## 1. Engineering before modeling
-**Ask the whole intake in one round** (`references/intake.md`): datums, attach features, corners/ends/
-T-junctions, shared items, allowed overlaps, files vs configurations, PDM properties, purchased parts.
-For layout-driven models, run the Python layout + clearance check on the rules before any CAD.
-Read `references/engineering.md` now: fits/wall table, snap-fit and detent formulas, PCB clamping,
-stand geometry, standard component sizes for sanity checks, and the process that avoided rework.
-- **Interrogate the measurements.** Cross-check what the user gives you (hole edge distance + diameter
-  vs. hole pitch, sums of offsets vs. board size, "a bit less than 121" → the standard panel size).
-  Odd non-round numbers often hide a standard part — look it up. Ask only for what you can't derive,
-  and say exactly which dimension is missing and why it matters (e.g. "without the module thickness I
-  can't set the enclosure depth").
-- **One parameter file** (`params.py`): every value with a source tag `[M]` measured, `[D]` datasheet,
-  `[C]` calculated, `[A]` assumption. Assumptions are listed back to the user. Keep printer fits
-  (clearances, interference, wall thickness) as their own group — they change after test prints.
-- **Derived geometry in one module** (expression strings over parameter names) so all parts agree.
-- **Present a plan with drawings and get approval** for anything beyond a single part: parts list,
-  joining method, tolerances table, print orientation of each part, and what you will verify.
-- For fits you can't be sure of (snaps, press fits, hinges), propose **small test coupons** first.
-  Size snap/flex arms by strain: ε = 1.5·t·y/L² (PLA ≲ 1 % for repeated use, ~2 % one-off), and
-  orient flexing parts so they bend along the printed layers.
+## Module map - read only what the task needs
+| When the task is | Read |
+|---|---|
+| Talking to the user, planning, estimating, hand-over | `references/dialogue.md`, `references/intake.md` |
+| Any raw API call the library does not cover | `references/pitfalls.md`, `references/api_cheatsheet.md` |
+| Changing an existing model, value changes, batch runs, one-command updates | `references/update_in_place.md` |
+| The user also edits in SolidWorks | `references/hand_edits.md` |
+| Checking a part or assembly | `references/verification.md` |
+| Assemblies, mates, patterns, > 30 components, configurations | `references/assemblies.md` |
+| Judging an existing model (how editable is it?) | `scripts/audit.py` (read-only, one line + JSON) |
+| Production drawings | `references/drawings.md`, `scripts/drawtools.py` |
+| 3D-printed parts, enclosures, snap fits, print files | `references/fdm_printing.md`, `references/engineering.md` |
+| A SolidWorks error or a version question | `references/version_notes.md` |
+| Reading listings, approval sketches, token habits | `references/tools_and_workflow.md` |
+| What happened in the field (measured days) | `references/field_log_*.md` |
 
-## 2. Build with the library (see references/api_cheatsheet.md)
-- `PartBuilder` creates the doc (MMGS), switches off sketch snapping (restored on exit), and links
-  **every** dimension to an equation, so the user can edit the part in Tools > Equations.
-- Rules that keep parts editable: one outline per sketch (outer body, then cut the inner);
-  rectangles/circles through the library (they get proper relations); polylines only for small
-  profile details. Name every feature and sketch meaningfully.
-- Raw API for anything the library doesn't cover — first read `references/pitfalls.md`; it lists
-  47 traps with fixes (out-params, IDispatch args, selection marks, cut direction, mates...).
-- **Update in place by default, rebuild only when the structure changes** (`references/update_in_place.md`).
-  The runner pattern, measured on a 70-part model in SolidWorks 2019:
-  1. **Fingerprint first** (hash of the part script + shared geometry module it imports + the values it uses +
-     props + colour, stored in the manifest with the file's mtime). Same fingerprint and file not saved since
-     -> skip without opening SolidWorks: **70 unchanged parts in 1 s instead of 19 min.**
-  2. Otherwise **one open**: `PartBuilder(mode="update")` + `partsync.check_open` (hand edits -> stop, exit 3),
-     dry build (existing features skipped, new ones appended - e.g. reference planes), `push_globals()`
-     (value changes; compare at 6 significant digits), props/colour only if different, save + reopen, `verify()`.
-     A changed feature definition raises `SyncConflict` -> stop (exit 4) and ask before any rebuild.
-  3. New file -> build from scratch with the full checks.
-  Result: a value change touching 36 of 70 parts = 0 rebuilds, ~15 min (before: 62 rebuilds, ~27 min, every
-  edge id renewed). Rebuilding by habit also renews edge ids: mates and drawings dangle.
-- **One SolidWorks session for a batch of parts** (`runpy` in one process, `reset_params()` before each part,
-  one summary line per part, counts built/updated/unchanged at the end). Close the part's documents on any
-  failure, or the next part's SaveAs fails (error 1).
-- **Pre-run hygiene** (`scripts/hygiene.py`): with no documents open, delete stale `~$*` locks; heartbeat that
-  prints `STALL <item>` after 3 min without progress (a modal dialog blocks COM without an error).
-- Give every part that will be mated or attached to **named reference geometry** (`AX_*`, `PL_*`, `PT_*`):
-  e.g. one plane per hole through its axis (`pb.plane("PL_HOLE_X", "L - 160")`), appended in update mode.
-- **Configurations: by suppression** (the default holds every feature/component, each configuration suppresses
-  all but its own). Configuration-specific global values (`SetEquationAndConfigurationOption`) crashed
-  SolidWorks 2019 inside a batch build (version_notes 2019 #12-15) - don't use them on 2019.
-- **Log every SolidWorks/API error in the project's version notes in the same turn** (date | symptom | cause |
-  fixed / workaround / open). At the end of the conversation the log becomes skill changes.
-- **Measure, don't estimate, cost per task**: in the Claude desktop app, the session usage tool gives the
-  context size and the 5-hour plan percentage; log the delta per task with the wall time and the counts
-  (built / updated / unchanged) to `out/metrics.csv` and chart it.
+## Library (`scripts/`)
+- `sw_common.py` - connect, early binding, typed wrapper `T()`, version guard, templates, save, safe closing.
+- `swcad.py` - `PartBuilder`: planes, sketches, extrude / cut, linked equations, update mode, checks, verified save.
+- `partsync.py` - manifests, hand-edit detection, build / update decision.
+- `asmtools.py` - placement, mates on named planes, mate / transform checks, interference, linear patterns.
+- `patterns.py` - turns a placement list into seeds + linear patterns. `hygiene.py` - stale locks, stall detector.
+- `audit.py` - model health / editability score of any existing part or assembly.
+- `drawtools.py` - drawing dimensions attached to model edges, verified.
+- `orient_stl.py`, `overhangs.py`, `bambu_project.py` - print pipeline.
+- `smoke_test.py`, `sync_test.py` - self tests on the live SolidWorks.
 
-## 2b. Assemblies (read `references/assemblies.md` for anything above ~30 components)
-- Small sub-assemblies (a pole with its fittings, a bracket with bolts): **mates** on named references,
-  fasteners concentric in their holes, verified against the expected transforms. Recipe that scripts well:
-  **plane-to-plane mates only** (`asmtools._mate`, `mate_errors`, `transform_error`): insert each component at its
-  computed transform, fix only the base part, add 3 plane mates per component, rebuild, then every solved
-  transform must equal the computed one (a flipped mate passes the rebuild and fails here). Purchased (PDM)
-  parts get no added references: use their own planes (often renamed `Plane1/2/3`; identify by normal).
-- Top level of repetitive structures: sub-assemblies placed by **computed transforms**,
-  `asmtools.place_many()` (hidden loading, `AddComponents3` batches of ~100, save per batch; 738 comps in 60 s).
-  Say the trade-off to the user (no drag-editing).
-- **Repeated families as seeds + patterns, not hundreds of placements** (assemblies.md 10-11): `patterns.plan()` on
-  the placement list, then `asmtools.linear_pattern` (2019 recipe: seeds mark 1, axes mark 2 / 4,
-  `FeatureLinearPattern2`); count/spacing changed later with `modify_pattern` - "4 anchors instead of 2" is one value.
-  Measured: 194 -> 95 placed components, exact. Mirrors with `MirrorComponents3`.
-- One sub-assembly per variant; a variant that needs a mirrored fitting (eye bolt left/right) is its own
-  sub-assembly. Use Linear Pattern / Mirror inside a sub-assembly instead of loose repeated components.
-- Purchased fasteners inside sub-assemblies, never loose at the top level; a "simplified" configuration
-  (by suppression) without them.
-- Interference on big assemblies: per sub-assembly + a cut-out check assembly + Python clearances
-  (run the clearances on the rule set BEFORE any CAD - three rule conflicts were found there in seconds).
-- Layout-following items (cables, rods, purlins): a file per exact length updated in place works and is simple;
-  one part with a configuration per length only by suppression (see above), never configuration-specific
-  equations on 2019.
-
-## 3. Verify every part — never report success without numbers
-Run these after each part, print the results, and stop on any failure:
-1. `rebuild_errors()` empty and exactly one solid body (unless intended).
-2. Bounding box equals the design to 0.001 mm; volume equals a hand calculation (exact for prismatic
-   parts; numpy grid integration for curved profiles).
-3. **Edit test**: change a global variable, rebuild, check the geometry moved as expected, restore.
-4. `save()` = save, close, reopen, rebuild → zero errors (catches session-only artefacts).
-5. In assemblies: `check_interference(asm, expected)` with an explicit list of *designed* overlaps
-   (press fits, crush ribs, detent preload, a plug tip in its socket). Anything else is a bug —
-   and an absent expected overlap is also a bug (e.g. a snap hook not in its groove).
-   Sweep moving parts through every position (`comp.Transform2`, rebuild, check).
-6. Look at the pictures (`picture()`), and question what you see — the automatic checks once passed
-   a leg joined to its wheel by a 1 mm sliver; only the side view showed it.
-
-## 3b. Hand edits: never overwrite them silently
-Users also edit the parts in SolidWorks. Every `PartBuilder.save()` writes `<part>.manifest.json`
-(the script's feature definitions + the saved file's state). Before touching a part again:
-```python
-import partsync
-mode = partsync.decide(sw, PATH, PARAMS_PY)      # "build" | "update", or exit 3 with a report
-pb = PartBuilder(sw, P, path=PATH, mode=mode)
-```
-- No hand edits -> build as usual. Only added/suppressed features -> update in place automatically.
-- Deleted features or changed globals/equations -> the script stops (exit 3) and prints what changed.
-  **Ask the user**, then rerun with `--update` (keep hand edits), `--adopt` (hand-changed globals ->
-  params.py) or `--rebuild` (discard; only with explicit consent).
-- Update mode: features that exist with the same definition are skipped, new ones are appended at the end
-  of the tree, a changed definition raises `SyncConflict` (needs a rebuild or replacing that feature).
-  Prefer update mode for small additions (a teardrop, a chamfer, a slot): seconds instead of minutes,
-  hand edits and drawing references survive. Add the feature to the build script too, so a future
-  rebuild still has it.
-- A shared equation file is protected the same way (`check_shared` + a `.last.json` snapshot).
-- Parts built before manifests existed: run each build script once with `--update` (legacy mode trusts
-  the existing names) to write a baseline manifest without changing geometry.
-- Self test: `python scripts/sync_test.py` must print `SYNC TEST OK`.
-- Update mode also changes existing features in place when only their dimension expressions changed
-  (the equations are rewritten; polyline-only sketches are redrawn). Changed structure (feature kind,
-  parent plane, cut direction, sign of a value) still needs a rebuild.
-- `--no-link` keeps the globals inside each part instead of linking `shared_params.txt` (pitfall 41).
-- Long builds: `SWCAD_TRACE=1` prints one timestamped line per feature - log it to a file and treat
-  2-3 minutes without a new line as a hang (pitfall 42).
-
-## 4. Drawings
-For a production drawing read `references/drawings.md` and use `scripts/drawtools.py`; check every
-dimension value AND look at the exported PNG (overlaps, empty sections).
-
-## 5. Print pipeline (FDM)
-1. `export_stl` → `orient_stl.py --rot flip_x|side_x|side_y|keep` (rest on Z=0).
-2. `overhangs.py <folder>`: flat downward faces = bridges (OK when short), sloped/curved = needs
-   support → prefer re-orienting or redesigning (constant profiles print on their side) over supports.
-3. `bambu_project.py --name ... --outdir ... *.stl`: arranges, slices with the user's own Bambu presets
-   (printer read from BambuStudio.conf), reports minutes, grams, `support_used` and warnings.
-   One project per plate/colour; open the first with `bambu-studio.exe <file.3mf>`.
-
-## 6. Working with the user
-- **Intake before modeling** (each item cost a reprint once): a labelled photo of every board *from the
-  side the user will look at* (directions given from the back mirror the whole design); every connector
-  that will be used, with its plug and cable exit; how each loose component is held in all six
-  directions (a part that can slide out of a window needs a stop); the fasteners/inserts the user has.
-- **Model every interface as a keep-out body from day one** (plugs + wire bend room, cables, fingers on
-  buttons) so the interference check covers it - an "open question" in a summary is not a check.
-- **Tolerance-stack each joint along its axis**: preloads (crush ribs, detents) push parts apart, so a
-  snap's play must exceed them, or the hook never reaches its groove.
-- **Stop after two failed attempts at the same step** and tell the user what is known; never guess a cause
-  to the user ("the screen is locked") without evidence.
-- **Spend fewer credits:** never print long logs or tracebacks to the conversation (one summary line per
-  item, details in `logs/`, last 10 lines only on failure); never `ls` a CAD folder (count instead); value-only changes -> `set_param`/update mode or the user's own script, never a
-  rebuild; scripts print one line per result and log details to a file (read only `tail`/`grep`);
-  smoke-test a new SolidWorks session first; ask all intake questions in one message; keep status
-  messages short.
-- Long builds: run in the background (`python -u`), give a one-line status, keep working on the next script.
-- Explain failures plainly ("each run starts clean on purpose; this one hit an API quirk, fixed once in
-  the library") — users notice repeated restarts and open documents.
-- Close only documents you created; restore any preference you change; never touch files outside
-  the project folder.
-- Deliver: SolidWorks files, a `build_all.py` that rebuilds everything in order, print files, a short
-  assembly sequence, and the list of `[A]` assumptions still to measure.
-
-## Files
-- `scripts/sw_common.py` — connect, early binding, typed wrapper `T()`, templates, save, safe closing.
-- `scripts/swcad.py` — `PartBuilder`: planes, sketches (rect/rrect/circle/polygon), extrude/cut,
-  linked equations, checks, edit test, verified save.
-- `scripts/asmtools.py` — place parts by transform, interference with expected overlaps, pictures, STL.
-- `scripts/orient_stl.py`, `scripts/overhangs.py`, `scripts/bambu_project.py` — print pipeline.
-- `scripts/drawtools.py` — drawing dimensions attached to model edges, placed off the view outline, verified.
-- `scripts/smoke_test.py` — end-to-end self test of the above on the live SolidWorks.
-- `scripts/partsync.py` — manifests, hand-edit drift report, build/update decision, adopt values.
-- `scripts/sync_test.py` — self test of the hand-edit protection and update mode.
-- `references/pitfalls.md` — read before writing raw API code.
-- `references/api_cheatsheet.md` — library usage and raw call signatures that are known to work.
-- `references/engineering.md` — design rules and formulas for printed enclosures and mechanisms.
-- `references/drawings.md` — production drawings: recipe, pitfalls, what to put on the sheet.
-- `references/assemblies.md` — placement per level, mates that survive scripting, big-assembly loading and
-  interference, files vs configurations.
-- `references/intake.md` — the one-round question template and pre-CAD clearance check.
-- `references/version_notes.md` — version guard and SolidWorks 2019 findings.
-- `references/tools_and_workflow.md` — reading component listings, approval drawings (incl. RTL
-  labels), screen access, old STLs, Bambu Studio, and keeping token use low.
+## Status
+Field-tested on SolidWorks 2019 (a 770-component structure, `references/field_log_*.md`); the library was first
+written on a newer release. Recipes say where they were tested; anything else is untested, not known to fail.
+`ROADMAP.md` lists what is planned (design-intent assemblies with a skeleton, two-way value sync, project
+scaffold, materials and mass, drawings + BOM, sheet metal, simulation).

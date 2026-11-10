@@ -141,3 +141,27 @@ configuration (was > 25 min per component, 15 min with a per-pattern tree walk).
 by a script, create the configurations by script too, after it - hand-made ones would be lost.
 Value variants (span, terrace) are NOT configurations: they change part lengths and file counts - keep them as value
 sets in the parameters file and update the one model in place.
+
+## Summary rules (from SKILL.md v1)
+- Small sub-assemblies (a pole with its fittings, a bracket with bolts): **mates** on named references,
+  fasteners concentric in their holes, verified against the expected transforms. Recipe that scripts well:
+  **plane-to-plane mates only** (`asmtools._mate`, `mate_errors`, `transform_error`): insert each component at its
+  computed transform, fix only the base part, add 3 plane mates per component, rebuild, then every solved
+  transform must equal the computed one (a flipped mate passes the rebuild and fails here). Purchased (PDM)
+  parts get no added references: use their own planes (often renamed `Plane1/2/3`; identify by normal).
+- Top level of repetitive structures: sub-assemblies placed by **computed transforms**,
+  `asmtools.place_many()` (hidden loading, `AddComponents3` batches of ~100, save per batch; 738 comps in 60 s).
+  Say the trade-off to the user (no drag-editing).
+- **Repeated families as seeds + patterns, not hundreds of placements** (assemblies.md 10-11): `patterns.plan()` on
+  the placement list, then `asmtools.linear_pattern` (2019 recipe: seeds mark 1, axes mark 2 / 4,
+  `FeatureLinearPattern2`); count/spacing changed later with `modify_pattern` - "4 anchors instead of 2" is one value.
+  Measured: 194 -> 95 placed components, exact. Mirrors with `MirrorComponents3`.
+- One sub-assembly per variant; a variant that needs a mirrored fitting (eye bolt left/right) is its own
+  sub-assembly. Use Linear Pattern / Mirror inside a sub-assembly instead of loose repeated components.
+- Purchased fasteners inside sub-assemblies, never loose at the top level; a "simplified" configuration
+  (by suppression) without them.
+- Interference on big assemblies: per sub-assembly + a cut-out check assembly + Python clearances
+  (run the clearances on the rule set BEFORE any CAD - three rule conflicts were found there in seconds).
+- Layout-following items (cables, rods, purlins): a file per exact length updated in place works and is simple;
+  one part with a configuration per length only by suppression (see above), never configuration-specific
+  equations on 2019.

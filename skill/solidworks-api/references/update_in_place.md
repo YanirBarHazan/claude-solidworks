@@ -70,3 +70,39 @@ and every assembly built on it was off (43 mm here) - the mate checks caught it,
   verification -> one `UPDATE PASS / FAIL` line. Measured: no change 1.5 min, part-only value 3.5 min, layout
   value (pole lean 500 -> -500, 770 components) 17 min.
 - Windows `.bat`: write it ASCII with CRLF line ends. A UTF-8 / LF file broke cmd parsing (`'d' is not recognized`).
+
+## Build rules and the runner pattern (from SKILL.md v1)
+- `PartBuilder` creates the doc (MMGS), switches off sketch snapping (restored on exit), and links
+  **every** dimension to an equation, so the user can edit the part in Tools > Equations.
+- Rules that keep parts editable: one outline per sketch (outer body, then cut the inner);
+  rectangles/circles through the library (they get proper relations); polylines only for small
+  profile details. Name every feature and sketch meaningfully.
+- Raw API for anything the library doesn't cover — first read `references/pitfalls.md`; it lists
+  47 traps with fixes (out-params, IDispatch args, selection marks, cut direction, mates...).
+- **Update in place by default, rebuild only when the structure changes** (`references/update_in_place.md`).
+  The runner pattern, measured on a 70-part model in SolidWorks 2019:
+  1. **Fingerprint first** (hash of the part script + shared geometry module it imports + the values it uses +
+     props + colour, stored in the manifest with the file's mtime). Same fingerprint and file not saved since
+     -> skip without opening SolidWorks: **70 unchanged parts in 1 s instead of 19 min.**
+  2. Otherwise **one open**: `PartBuilder(mode="update")` + `partsync.check_open` (hand edits -> stop, exit 3),
+     dry build (existing features skipped, new ones appended - e.g. reference planes), `push_globals()`
+     (value changes; compare at 6 significant digits), props/colour only if different, save + reopen, `verify()`.
+     A changed feature definition raises `SyncConflict` -> stop (exit 4) and ask before any rebuild.
+  3. New file -> build from scratch with the full checks.
+  Result: a value change touching 36 of 70 parts = 0 rebuilds, ~15 min (before: 62 rebuilds, ~27 min, every
+  edge id renewed). Rebuilding by habit also renews edge ids: mates and drawings dangle.
+- **One SolidWorks session for a batch of parts** (`runpy` in one process, `reset_params()` before each part,
+  one summary line per part, counts built/updated/unchanged at the end). Close the part's documents on any
+  failure, or the next part's SaveAs fails (error 1).
+- **Pre-run hygiene** (`scripts/hygiene.py`): with no documents open, delete stale `~$*` locks; heartbeat that
+  prints `STALL <item>` after 3 min without progress (a modal dialog blocks COM without an error).
+- Give every part that will be mated or attached to **named reference geometry** (`AX_*`, `PL_*`, `PT_*`):
+  e.g. one plane per hole through its axis (`pb.plane("PL_HOLE_X", "L - 160")`), appended in update mode.
+- **Configurations: by suppression** (the default holds every feature/component, each configuration suppresses
+  all but its own). Configuration-specific global values (`SetEquationAndConfigurationOption`) crashed
+  SolidWorks 2019 inside a batch build (version_notes 2019 #12-15) - don't use them on 2019.
+- **Log every SolidWorks/API error in the project's version notes in the same turn** (date | symptom | cause |
+  fixed / workaround / open). At the end of the conversation the log becomes skill changes.
+- **Measure, don't estimate, cost per task**: in the Claude desktop app, the session usage tool gives the
+  context size and the 5-hour plan percentage; log the delta per task with the wall time and the counts
+  (built / updated / unchanged) to `out/metrics.csv` and chart it.
