@@ -12,6 +12,16 @@ This repository is a **skill for [Claude Code](https://claude.com/claude-code)**
 
 The enclosure in the photo above (a desk display with a touch screen, a presence radar, a light bar and a speaker) was designed this way from the first sketch to the sliced print files.
 
+## What's new (2026-11-10): configurations, one-command updates, and the bugs a real change exposed
+- **Suppression configurations on a 770-component assembly in 35 s each** (was > 25 min): one tree walk, one
+  `EditSuppress2`. The timing table that found the cause: [assemblies](skill/solidworks-api/references/assemblies.md)
+- **One command for any value change:** parameters text file + `update.bat` -> checks, update in place, assemblies
+  regenerated only for layout values, one PASS/FAIL line. 3.5 min for a part value, 17 min for a layout change.
+  [Update in place](skill/solidworks-api/references/update_in_place.md)
+- **Three traps found by the first layout change** (negative global under `^`, equation edits not saved, crash
+  mid-batch) - each caught by a check, not by eye. [Version notes 25-31](skill/solidworks-api/references/version_notes.md) |
+  [Field log](skill/solidworks-api/references/field_log_2026-11-10.md) | [Data](field-data/2026-11-10-large-structure/README.md)
+
 ## What's new (2026-11-09): field results from a 738-component model in SolidWorks 2019
 - **Update in place, never rebuild to change a value.** A run with no change over 70 parts: **1 s** (fingerprints,
   nothing opened) instead of ~19 min; a value change touching half the parts: **0 rebuilds**, ~15 min instead of 62

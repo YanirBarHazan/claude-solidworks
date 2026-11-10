@@ -53,3 +53,20 @@ existing file; existing features are skipped; nothing is rebuilt. Seen: 8 parts 
 
 ## 7. Not worth it (yet)
 A configuration per length driven by configuration-specific global values: see version_notes 2019 #12-15.
+
+
+## Equation-only edits must be saved (bug found 2026-11-10)
+When a script changes an EXPRESSION (not a value), update mode rewrites that equation in place. Count it as a
+change: `PartBuilder.edited` lists the sketches / features whose equations or polylines were rewritten, and the
+runner must save + verify when it is non-empty. Before the fix the part was closed unsaved with a new fingerprint,
+and every assembly built on it was off (43 mm here) - the mate checks caught it, not the part check.
+
+## One command for any value change (parameters text file + update.bat)
+- `params.txt`: `NAME = value ; note`, groups as `[GROUP]` (the names are the SolidWorks globals - never rename),
+  value sets as `[SET name]` overrides. `params.py` becomes a loader exposing the same dicts: no script changes.
+  After the switch, compare every value with the old file (0 differences) before running anything.
+- `update.py`: what changed (vs a snapshot written only after PASS) -> Python geometry checks (stop before CAD) ->
+  parts in update mode -> if a layout value changed: sub-assemblies, main assembly, configurations regenerated ->
+  verification -> one `UPDATE PASS / FAIL` line. Measured: no change 1.5 min, part-only value 3.5 min, layout
+  value (pole lean 500 -> -500, 770 components) 17 min.
+- Windows `.bat`: write it ASCII with CRLF line ends. A UTF-8 / LF file broke cmd parsing (`'d' is not recognized`).

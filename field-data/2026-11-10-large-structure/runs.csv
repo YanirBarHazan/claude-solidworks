@@ -1,0 +1,10 @@
+run,what,result,wall_s
+configs_v1,"4 suppression configurations, SetSuppression2 per component",killed by 25 min timeout during configuration 2,1500
+configs_v2,"one selection + EditSuppress2, tree walked per pattern",OK 4 configurations,2470
+configs_v3,tree walked once,OK 4 configurations (34 / 37 / 43 s each),366
+update_baseline,"update.bat, no value changed",UPDATE PASS,89
+update_wall_2.5,part-only value 2.2 -> 2.5,"UPDATE PASS, 5 parts updated, 69 skipped",207
+update_wall_2.2,part-only value 2.5 -> 2.2,UPDATE PASS,200
+update_lean_1,layout value: pole lean 500 -> -500,FAIL: pole equation (row 28) + SolidWorks crash at part 33 (row 29),
+update_lean_2,"same, after the equation fix",FAIL: sub-assembly 43 mm off (row 31: part not saved),
+update_lean_3,"same, after the save fix","UPDATE PASS: 11 SA solved = computed, 770 comps, 4 configs, 888 cable ends 0.0000",1042

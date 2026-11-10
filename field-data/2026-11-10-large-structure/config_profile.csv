@@ -1,0 +1,14 @@
+step,seconds
+plan (Python),0.0
+open assembly (silent),2.9
+AddConfiguration3,5.2
+ShowConfiguration2,0.0
+feature tree walk (once),54.6
+GetComponents (770),26.1
+GetPathName x 770,7.7
+IsPatternInstance,0.4
+select,0.2
+EditSuppress2,0.6
+ForceRebuild3,2.6
+switch configuration,1.3
+close,1.1

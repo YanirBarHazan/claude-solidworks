@@ -121,3 +121,23 @@ Measure the purchased file first (bbox, cylinders, tori, planes) and check that 
 bolt agrees with it. Example: a rectangular cable shackle holds the cable in an end curl 13 mm from the bolt axis
 with the bolt axis square to the cable, while the layout rule put the cable 36-50 mm from a bolt parallel to it -
 caught in Python before any mate, sent to the user as a design question instead of being forced.
+
+
+## Configurations by suppression on a big assembly (measured 2026-11-10, 2019, 770 components)
+Default configuration holds everything; each other configuration suppresses one family. Recipe:
+```python
+feats = {}                                   # walk the tree ONCE (55 s here) - never per lookup
+f = doc.FirstFeature()
+while f is not None:
+    f = T(f, "IFeature"); feats[f.Name] = f; f = f.GetNextFeature()
+doc.AddConfiguration3(name, "", "", 0); doc.ShowConfiguration2(name)
+doc.ClearSelection2(True)
+for pat in patterns_of_family: feats[pat].Select2(True, 0)          # the pattern feature
+for c in seeds_and_singles_of_family: c.Select4(True, None, False)   # not c.IsPatternInstance()
+doc.EditSuppress2(); doc.ForceRebuild3(False); doc.Save3(1, 0, 0)  # save after each configuration
+```
+Check per configuration: resolved components (`GetSuppression2() != 0`) per file = expected. Time: 35 s per
+configuration (was > 25 min per component, 15 min with a per-pattern tree walk). If the assembly is regenerated
+by a script, create the configurations by script too, after it - hand-made ones would be lost.
+Value variants (span, terrace) are NOT configurations: they change part lengths and file counts - keep them as value
+sets in the parameters file and update the one model in place.

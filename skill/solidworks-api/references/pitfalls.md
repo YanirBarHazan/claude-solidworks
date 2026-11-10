@@ -135,3 +135,8 @@ marked ✅; the rest you handle in your own code.
 47. Toolchains (ESP32 gcc) break on non-ASCII project paths: a `-D` macro holding the path fails, and a
     junction does not help (PlatformIO resolves it). Use `LV_CONF_INCLUDE_SIMPLE` + `-I include` and put
     `build_dir` on an ASCII path outside OneDrive.
+
+
+## Equations: a signed global under ^ (2019, 2026-11-10)
+`"A"^2` with the global A = -500 evaluates to -250000. Use `"A"*"A"` or `abs("A")^2` for anything that can turn
+negative (lean, offset, side). Found only because the verify step compares bbox / volume with a hand calculation.

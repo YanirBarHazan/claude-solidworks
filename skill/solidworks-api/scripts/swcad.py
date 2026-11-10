@@ -264,6 +264,8 @@ class PartBuilder:
                 raise RuntimeError(f"equation rejected: {text}")
         if redraw:
             self._redraw_polylines(name, redraw)
+        if writes or redraw:
+            self.__dict__.setdefault("edited", []).append(name)   # equation / sketch edits: the caller must save
         print(f"   updated in place: {name} ({len(writes)} equation(s)"
               f"{', polyline redrawn' if redraw else ''})")
 
