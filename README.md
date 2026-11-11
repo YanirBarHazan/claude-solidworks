@@ -12,6 +12,24 @@ This repository is a **skill for [Claude Code](https://claude.com/claude-code)**
 
 The enclosure in the photo above (a desk display with a touch screen, a presence radar, a light bar and a speaker) was designed this way from the first sketch to the sliced print files.
 
+## What's new (2026-11-11): version 2 foundation - models a human can open, understand and change
+- **Design intent lives in SolidWorks.** A skeleton part, seeds mated to it, component patterns driven by assembly
+  equations: change a number in Tools > Equations and the assembly follows; only the skeleton is fixed.
+  [Recipe](skill/solidworks-api/references/assemblies.md) (section 13)
+- **Hand and script together.** A value changed by hand in SolidWorks is pulled back into the parameter file,
+  hand-added features are kept, and any file changed since the script wrote it is backed up before it is saved over.
+  [Hand edits](skill/solidworks-api/references/hand_edits.md)
+- **Real engineering data.** SolidWorks materials with a mass check, weight / material properties that follow the
+  model, Hole Wizard holes, feature patterns and mirror with linked counts, a fully-defined-sketch gate.
+  [Materials](skill/solidworks-api/references/materials_properties.md) |
+  [Part features](skill/solidworks-api/references/part_features.md)
+- **`audit.py`**: a health / editability score for any existing part or assembly (read-only).
+- **A leaner skill.** SKILL.md is 60% shorter (the v1 text moved word for word into topic modules), plus a design
+  brief and a one-page project card for the dialogue with the user.
+  [Dialogue](skill/solidworks-api/references/dialogue.md)
+- Every item was tested live on SolidWorks 2019 only; each reference lists what is not tested yet.
+  [Roadmap](skill/solidworks-api/ROADMAP.md)
+
 ## What's new (2026-11-10): configurations, one-command updates, and the bugs a real change exposed
 - **Suppression configurations on a 770-component assembly in 35 s each** (was > 25 min): one tree walk, one
   `EditSuppress2`. The timing table that found the cause: [assemblies](skill/solidworks-api/references/assemblies.md)
