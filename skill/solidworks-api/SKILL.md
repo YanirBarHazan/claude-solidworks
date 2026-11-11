@@ -17,8 +17,9 @@ absorbs the API's quirks, design intent decided before geometry, and never trust
    list of designed overlaps, counts. Say what was not verified.
 3. **Design intent before geometry.** Decide what drives what (skeleton / named reference geometry, mates,
    patterns, files vs configurations) and name every feature, sketch, plane and mate. A human must be able to open
-   the model, understand it from the tree and change it. Fixed components are a base, not a method: where a level
-   is placed by computed transforms (large repetitive top levels), say the trade-off and keep it to that level.
+   the model, understand it from the tree and change it. Only the skeleton / base component is fixed: seeds are
+   mated to a skeleton part and repeats are patterns driven by assembly equations, so a value edited in Tools >
+   Equations moves the model (`references/assemblies.md` 13). Computed-transform placement is a measured fallback.
 4. **Never overwrite human work silently.** Hand edits are detected before a file is touched; stop and ask
    (keep / adopt into the parameters / discard). Close only documents you opened; never touch files outside the
    project.
@@ -53,7 +54,7 @@ absorbs the API's quirks, design intent decided before geometry, and never trust
 | Changing an existing model, value changes, batch runs, one-command updates | `references/update_in_place.md` |
 | The user also edits in SolidWorks | `references/hand_edits.md` |
 | Checking a part or assembly | `references/verification.md` |
-| Assemblies, mates, patterns, > 30 components, configurations | `references/assemblies.md` |
+| Assemblies, mates, patterns, > 30 components, configurations | `references/assemblies.md` (start at section 13) |
 | Judging an existing model (how editable is it?) | `scripts/audit.py` (read-only, one line + JSON) |
 | Production drawings | `references/drawings.md`, `scripts/drawtools.py` |
 | 3D-printed parts, enclosures, snap fits, print files | `references/fdm_printing.md`, `references/engineering.md` |

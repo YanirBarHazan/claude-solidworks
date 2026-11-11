@@ -165,3 +165,33 @@ sets in the parameters file and update the one model in place.
 - Layout-following items (cables, rods, purlins): a file per exact length updated in place works and is simple;
   one part with a configuration per length only by suppression (see above), never configuration-specific
   equations on 2019.
+
+## 13. Design-intent top level: skeleton + mated seeds + equation-driven patterns (2019, verified 2026-11-10)
+**Use this for any assembly a human will open and change.** It replaces "everything fixed by computed transform"
+(section 1), which stays only as a fallback for very large top levels after measuring.
+Audit of the two styles (`scripts/audit.py`): fixed-by-transform top level 50/100, this recipe 100/100.
+
+1. **Skeleton part** (`SKEL`): reference planes / axes with names (`PL_TOP`, `PL_X1` ...), each dimension linked to
+   a global variable of the part (heights, spans). No solid body needed. It is the ONLY fixed component
+   (`asmtools.fix_only`).
+2. **Seeds are mated to the skeleton**, 3 plane mates each, never fixed. Insert each seed at its computed transform
+   first (the solver then picks the right side), check solved = computed, and settle distance mates
+   (`asmtools.settle_distance_mates`: a distance mate has two solutions; in a 100-seed test all 100 solved on the
+   wrong side before the flip pass).
+3. **Repeats are component patterns driven by assembly equations**: assembly globals (`"N_X"`, `"SPAN_X"`) and
+   `asmtools.drive_pattern(doc, pattern, n1='"N_X" + 1', s1='"SPAN_X"', n2=..., s2=...)`.
+   2019 dimension names of a component linear pattern: D1 = count dir 1, D3 = spacing dir 1, D2 = count dir 2,
+   D4 = spacing dir 2. Changing `"N_X"` in Tools > Equations adds / removes instances; changing `"SPAN_X"` moves them.
+4. **One source inside SolidWorks**: an assembly global can read a skeleton dimension -
+   `set_equation(doc, "SPAN_Z", component_dim_ref(skel, "PL_Z1"))` gives `"SPAN_Z" = "D1@PL_Z1@SKEL<1>.Part"`.
+   The engineer edits the skeleton; the assembly follows.
+5. **Editing a component's equations from a script**: activate the component document first
+   (`asmtools.edit_component_equation`); without activation the change is silently ignored on 2019.
+6. **Update in place**: a value change = `set_equation` + rebuild (0.1 s on the test model). No regeneration, so
+   hand-made mates, components and configurations in the assembly survive.
+
+Measured (2019): 3x3-bay grid (34 components, 6 mates, 2 patterns): every edit rebuilds in 0.1 s; save / reopen
+0 mate errors. Solver load: 100 individually mated seeds = 300 mates: 0.31 s per mate to create, rebuild 0.7 s,
+open 1.5 s. Not measured yet: 200+ seeds, and a real 700-component structure. Example: `examples/skeleton-grid/`.
+Part lengths that must follow the same value (a beam as long as the span) live in the part's own globals: push
+the value to the part as well (`update_in_place.md`), or accept that the part is edited separately.

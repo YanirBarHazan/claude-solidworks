@@ -260,3 +260,98 @@ def modify_pattern(doc, feat, n1=None, s1_mm=None, n2=None, s2_mm=None):
     if not feat.ModifyDefinition(data, doc, None):
         raise RuntimeError(f"ModifyDefinition failed on {feat.Name}")
     doc.ForceRebuild3(False)
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# Design-intent assemblies (v2): a skeleton part, seeds MATED to it, patterns driven by assembly equations.
+# Proven on SolidWorks 2019 (2026-11-10): a value changed in Tools > Equations inside SolidWorks moves everything.
+# ---------------------------------------------------------------------------------------------------------------
+def set_equation(doc, name, text):
+    """Add or replace the equation / global variable whose left side is "name" (part or assembly).
+    text: a SolidWorks expression: '4200', '"N_X" + 1', '"D1@PL_Z1@SKEL<1>.Part"'. Rebuild afterwards."""
+    eq = T(doc.GetEquationMgr(), "IEquationMgr")
+    for i in range(eq.GetCount()):
+        if eq.Equation(i).split("=")[0].strip() == f'"{name}"':
+            eq.SetEquation(i, f'"{name}" = {text}')
+            break
+    else:
+        if eq.Add2(-1, f'"{name}" = {text}', True) < 0:
+            raise RuntimeError(f'equation rejected: "{name}" = {text}')
+    eq.EvaluateAll()
+
+
+def equations(doc):
+    eq = T(doc.GetEquationMgr(), "IEquationMgr")
+    return [eq.Equation(i) for i in range(eq.GetCount())]
+
+
+def feature_dims(feat):
+    """[(full name, system value)] of a feature's display dimensions, e.g. ('D1@PAT_POSTS@GRID.Assembly', 4.0)."""
+    out = []
+    d = feat.GetFirstDisplayDimension()
+    while d is not None:
+        dd = T(T(d, "IDisplayDimension").GetDimension2(0), "IDimension")
+        out.append((dd.FullName, dd.SystemValue))
+        d = feat.GetNextDisplayDimension(d)
+    return out
+
+
+def drive_pattern(doc, feat, n1=None, s1=None, n2=None, s2=None):
+    """Drive a component linear pattern from assembly equations, so its count / spacing follow global variables.
+    2019: D1 = count direction 1, D3 = spacing direction 1, D2 = count direction 2, D4 = spacing direction 2.
+    Each argument is an expression string ('"N_X" + 1', '"SPAN_X"'); None leaves that dimension alone."""
+    for d, text in (("D1", n1), ("D3", s1), ("D2", n2), ("D4", s2)):
+        if text is not None:
+            set_equation(doc, f"{d}@{feat.Name}", text)
+
+
+def component_dim_ref(comp, feature, dim="D1"):
+    """Assembly-equation reference to a dimension of a component: '"D1@PL_Z1@SKEL<1>.Part"'. With it an assembly
+    global can READ the skeleton (one source inside SolidWorks)."""
+    base, inst = comp.Name2.rsplit("-", 1)
+    ext = "Assembly" if comp.GetPathName().lower().endswith(".sldasm") else "Part"
+    return f'"{dim}@{feature}@{base}<{inst}>.{ext}"'
+
+
+def edit_component_equation(sw, asm_doc, comp, name, text):
+    """Change a global / equation INSIDE a component (e.g. the skeleton) from the assembly. The component document
+    must be activated first: without it the change is silently ignored (2019)."""
+    cdoc = T(comp.GetModelDoc2(), "IModelDoc2")
+    sw.ActivateDoc3(cdoc.GetTitle(), False, 0, 0)
+    try:
+        set_equation(cdoc, name, text)
+        cdoc.EditRebuild3()
+    finally:
+        sw.ActivateDoc3(asm_doc.GetTitle(), False, 0, 0)
+    asm_doc.ForceRebuild3(False)
+
+
+def fix_only(doc, comp):
+    """Fix one component (the skeleton / base). Everything else should be mated or patterned."""
+    doc.ClearSelection2(True)
+    comp.Select4(False, None, False)
+    T(doc, "IAssemblyDoc").FixComponent()
+    doc.ClearSelection2(True)
+
+
+def settle_distance_mates(doc, items, tol=0.01, passes=4):
+    """A distance mate has two solutions. items: [(component, axes, origin_mm, [its distance mates])].
+    Flip the mates of every component that is not at its computed position, repeat until all are (one flip
+    re-solves the assembly and can move another component). Returns the names flipped; raises if not settled."""
+    flipped = []
+    for _ in range(passes):
+        wrong = [it for it in items if transform_error(it[0], it[1], it[2])[0] > tol]
+        if not wrong:
+            return flipped
+        for comp, axes, o, mates in wrong:
+            if transform_error(comp, axes, o)[0] <= tol:
+                continue
+            for m in mates:
+                m = T(m, "IMate2")
+                m.Flipped = not m.Flipped
+            doc.ForceRebuild3(False)
+            flipped.append(comp.Name2)
+    left = [it[0].Name2 for it in items if transform_error(it[0], it[1], it[2])[0] > tol]
+    if left:
+        raise RuntimeError(f"distance mates not settled: {left[:5]}")
+    return flipped
