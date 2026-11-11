@@ -38,7 +38,7 @@ except RuntimeError:
     print("OK   mass check fails for a wrong expected density (2700)")
 pb.save(path)
 props = pb.link_properties()
-ok = abs(float(str(props["Weight"]).replace(",", ".")) - m * 1000) < 1      # MMGS document: grams and props["Material"] == "Plain Carbon Steel"
+ok = abs(float(str(props["Weight"]).replace(",", ".")) - m * 1000) < 1 and props["Material"] == "Plain Carbon Steel"   # MMGS document: grams
 print(f"{'OK  ' if ok else 'FAIL'} linked properties: {props}")
 print(f"{'OK  ' if filesafe.status(path) == 'ours' else 'FAIL'} filesafe after the script's save: {filesafe.status(path)}")
 os.utime(path, (time.time() + 5, time.time() + 5))            # someone else touched the file
