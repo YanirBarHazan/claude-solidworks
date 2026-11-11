@@ -22,5 +22,5 @@ props = pb.link_properties()                 # Weight = "SW-Mass@<file>", Materi
 - Existing parts: applying a material is an in-place update (no feature changes) - never a reason to rebuild.
 
 ## Still to add (roadmap phase 5)
-Company templates (units, title block), Hole Wizard holes with callouts, feature patterns / mirror inside parts,
-a fully-defined-sketch gate in `verify`, feature folders. Each needs its own live test before it is written here.
+Company templates (units, title block) and feature folders. Done since: Hole Wizard, feature patterns and
+mirror (`part_features.md`), the fully-defined-sketch gate (`verification.md`). Each needs its own live test before it is written here.

@@ -56,6 +56,7 @@ absorbs the API's quirks, design intent decided before geometry, and never trust
 | Checking a part or assembly | `references/verification.md` |
 | Assemblies, mates, patterns, > 30 components, configurations | `references/assemblies.md` (start at section 13) |
 | Judging an existing model (how editable is it?) | `scripts/audit.py` (read-only, one line + JSON) |
+| Standard holes, feature patterns, mirror inside a part | `references/part_features.md` |
 | Materials, mass, weight / material properties for BOM and title block | `references/materials_properties.md` |
 | Production drawings | `references/drawings.md`, `scripts/drawtools.py` |
 | 3D-printed parts, enclosures, snap fits, print files | `references/fdm_printing.md`, `references/engineering.md` |
@@ -65,7 +66,8 @@ absorbs the API's quirks, design intent decided before geometry, and never trust
 
 ## Library (`scripts/`)
 - `sw_common.py` - connect, early binding, typed wrapper `T()`, version guard, templates, save, safe closing.
-- `swcad.py` - `PartBuilder`: planes, sketches, extrude / cut, linked equations, update mode, checks, verified save.
+- `swcad.py` - `PartBuilder`: planes, sketches, extrude / cut, Hole Wizard, feature pattern / mirror, material and
+  mass, linked equations and properties, update mode, checks, verified save.
 - `paramfile.py` - the parameter text file (`NAME = value ; note`, groups, value sets, in-place rewrite).
 - `partsync.py` - manifests, hand-edit detection, three-way value decision, build / update decision. `filesafe.py` - backup and
   change detection for any file before it is overwritten.

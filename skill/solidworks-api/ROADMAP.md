@@ -21,7 +21,7 @@ Findings behind it (measured on the 770-component field model, SolidWorks 2019; 
 | 8 | **Simulation** | add-in + licence check; static study (material, fixtures, loads, mesh, run, factor of safety); documented hand calculation when no licence | a case with a known analytic answer |
 | 9 | **Benchmark, other versions, release** | fixed benchmark tasks measured in time and tokens per skill version; run on SolidWorks 2025; "tested on" table; v2 release | v1 vs v2 table |
 
-Progress 2026-11-11 (SolidWorks 2019, one live test each): phase 2 recipe in the library (`assemblies.md` 13); phase 3: `filesafe` backup / change detection, two-way value pull, hand features kept; phase 5: material, mass check, linked properties, fully-defined-sketch gate. Open in 3: a generic runner that does the pull automatically (phase 4). Open in 5: templates, Hole Wizard, feature patterns / mirror, tree folders.
+Progress 2026-11-11 (SolidWorks 2019, one live test each): phase 2 recipe in the library (`assemblies.md` 13); phase 3: `filesafe` backup / change detection, two-way value pull, hand features kept; phase 5: material, mass check, linked properties, fully-defined-sketch gate. Open in 3: a generic runner that does the pull automatically (phase 4). Phase 5 also: Hole Wizard hole, feature linear pattern, mirror (`part_features.md`). Open in 5: templates, tree folders.
 
 Cost levers (each measured or to be measured): lean core; one session per phase with a hand-over file; tools that
 run without Claude; scaffold instead of rewriting infrastructure; tested recipe catalogue + API probe script;

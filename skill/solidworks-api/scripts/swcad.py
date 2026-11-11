@@ -366,6 +366,110 @@ class PartBuilder:
     def cut(self, sketch, depth, name, reverse=False, mode="blind"):
         return self._extrude(sketch, depth, reverse, True, mode, name)
 
+    # ---------- Hole Wizard, feature pattern, mirror ----------
+    def hole_wizard(self, name, pos_sketch, face_point, size, diameter, kind="clearance", depth=None, point_index=0):
+        """A standard (ISO) Hole Wizard hole: the tree shows a real hole feature and drawings get its callout.
+        pos_sketch: a library sketch holding a point (`s.point`) - the hole position follows it (coincident), so
+                    the position stays driven by global variables and the wizard's sketch is fully defined.
+        face_point: (x, y, z) expressions, a point ON the face to drill (model coordinates, mm).
+        size: the standard size string ("M10"); diameter: the hole diameter expression (mm);
+        kind: "clearance" (screw clearance), "drill", "tap"; depth: None = through all, else an expression."""
+        import math
+        spec = ["holewzd", pos_sketch, [str(v) for v in face_point], size, str(diameter), kind, str(depth), point_index]
+        if self.declare(name, spec):
+            return name
+        gen, fast = {"clearance": (C.swWzdHole, C.swStandardISOScrewClearances),
+                     "drill": (C.swWzdHole, C.swStandardISODrillSizes),
+                     "tap": (C.swWzdTap, C.swStandardISOTappedHole)}[kind]
+        doc = self.doc
+        x, y, z = (self.val(v) * MM for v in face_point)
+        doc.ClearSelection2(True)
+        if not doc.Extension.SelectByID2("", "FACE", x, y, z, False, 0, None, 0):
+            raise RuntimeError(f"{name}: no face at {face_point}")
+        end = C.swEndCondThroughAll if depth is None else C.swEndCondBlind
+        dep = self.val(depth) * MM if depth is not None else 0.01
+        f = doc.FeatureManager.HoleWizard5(gen, C.swStandardISO, fast, size, end, self.val(diameter) * MM, dep, 0,
+                                           math.radians(118), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "", False, True, True,
+                                           True, True, False)
+        if f is None:
+            raise RuntimeError(f"{name}: Hole Wizard returned nothing (size {size!r}, kind {kind})")
+        f = T(f, "IFeature")
+        f.Name = name
+        # the wizard put its point where the face was picked: tie it to the library sketch point
+        pos, sub = None, f.GetFirstSubFeature()
+        while sub is not None:
+            sub = T(sub, "IFeature")
+            if sub.GetTypeName2() in ("ProfileFeature", "3DProfileFeature"):
+                sk = T(sub.GetSpecificFeature2(), "ISketch")
+                if (sk.GetSketchPoints2() or ()) and not (sk.GetSketchSegments() or ()):
+                    pos = sub
+                    break
+            sub = sub.GetNextSubFeature()
+        if pos is None:
+            raise RuntimeError(f"{name}: position sketch of the hole not found")
+        target = T(T(self.feat(pos_sketch).GetSpecificFeature2(), "ISketch").GetSketchPoints2()[point_index], "ISketchPoint")
+        doc.ClearSelection2(True)
+        pos.Select2(False, 0)
+        doc.EditSketch()
+        hp = T(T(doc.SketchManager.ActiveSketch, "ISketch").GetSketchPoints2()[0], "ISketchPoint")
+        doc.ClearSelection2(True)
+        hp.Select4(False, None)
+        target.Select4(True, None)
+        doc.SketchAddConstraints("sgCOINCIDENT")
+        doc.ClearSelection2(True)
+        doc.SketchManager.InsertSketch(True)
+        pos.Name = f"SK_{name}_POS"
+        return name
+
+    def pattern_linear(self, name, features, direction, n, spacing, flip=False):
+        """Feature linear pattern (one pattern instead of N sketches). direction: a reference plane (its normal)
+        or an axis feature name; n / spacing: expressions - both are linked, so the count is a global variable."""
+        if self.declare(name, ["lpattern", list(features), direction, str(n), str(spacing), bool(flip)]):
+            return name
+        doc = self.doc
+        nv, sv = int(round(self.val(n))), self.val(spacing)
+        doc.ClearSelection2(True)
+        self.feat(direction).Select2(False, 1)                 # direction 1: mark 1
+        for fn in features:
+            self.feat(fn).Select2(True, 4)                     # features to pattern: mark 4
+        f = doc.FeatureManager.FeatureLinearPattern2(nv, sv * MM, 1, 0.0123456, flip, False, "NULL", "NULL", False)
+        doc.ClearSelection2(True)
+        if f is None:
+            raise RuntimeError(f"{name}: linear pattern not created")
+        f = T(f, "IFeature")
+        f.Name = name
+        linked = 0
+        dd = f.GetFirstDisplayDimension()
+        while dd is not None:
+            d = T(T(dd, "IDisplayDimension").GetDimension2(0), "IDimension")
+            v = d.SystemValue
+            if abs(v - sv * MM) < 1e-9:
+                self.link(d, spacing)
+                linked += 1
+            elif abs(v - nv) < 1e-9 and nv != 1:
+                self.link(d, n)
+                linked += 1
+            dd = f.GetNextDisplayDimension(dd)
+        if linked < 2:
+            raise RuntimeError(f"{name}: pattern dimensions not linked ({linked} of 2)")
+        return name
+
+    def mirror(self, name, features, plane):
+        """Mirror features about a reference plane (symmetry stated once, in the tree)."""
+        if self.declare(name, ["mirror", list(features), plane]):
+            return name
+        doc = self.doc
+        doc.ClearSelection2(True)
+        self.feat(plane).Select2(False, 2)                     # mirror plane: mark 2
+        for fn in features:
+            self.feat(fn).Select2(True, 1)                     # features: mark 1
+        f = doc.FeatureManager.InsertMirrorFeature2(False, False, False, False, 0)
+        doc.ClearSelection2(True)
+        if f is None:
+            raise RuntimeError(f"{name}: mirror not created")
+        T(f, "IFeature").Name = name
+        return name
+
     # ---------- material, mass, linked properties ----------
     def material(self, name, database="SOLIDWORKS Materials"):
         """Apply a real SolidWorks material (density -> mass, appearance, simulation data). Raises when the name
@@ -690,6 +794,17 @@ class _Sketch:
             else:
                 lx, ly = (x / 2, y + 6) if kind == "h" else (x + 6, y / 2)
                 self.pending.append((self._dim([self._sel_pt(pt), self._sel_origin()], lx, ly, kind), expr, True))
+
+    def point(self, cx, cy):
+        """A sketch point dimensioned to the origin: the position of a Hole Wizard hole (`pb.hole_wizard`)."""
+        self.calls.append(["point", str(cx), str(cy)])
+        if self.dry:
+            return
+        pb = self.pb
+        pt = pb.doc.SketchManager.CreatePoint(pb.val(cx) * MM, pb.val(cy) * MM, 0)
+        if pt is None:
+            raise RuntimeError(f"point failed in {self.name}")
+        self._place(T(pt, "ISketchPoint"), cx, cy)
 
     def rect(self, cx, cy, w, h):
         self.calls.append(["rect", str(cx), str(cy), str(w), str(h)])
