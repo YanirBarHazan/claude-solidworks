@@ -7,6 +7,7 @@ task (context tokens, plan %, wall time). Open the CSV files in Excel or any spr
 | Folder | Project | SolidWorks | Size |
 |---|---|---|---|
 | [2026-11-09-large-structure](2026-11-09-large-structure/) | cable-braced steel structure | 2019 | 70 parts, 6 sub-assemblies, 738 components |
+| [2026-11-10-large-structure](2026-11-10-large-structure/README.md) | same structure, configurations and a layout change | 2019 | 770 components, suppression configurations |
 
 ## Files in each folder
 | File | One row per | Columns |
