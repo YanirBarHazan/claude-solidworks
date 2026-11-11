@@ -37,5 +37,30 @@ modified time, `<folder>/.swstate.json`) and `sw_common.save_as` / `save_doc` us
 - Save documents through `save_as` / `save_doc`, not a raw `Save3`: an unrecorded save looks like a hand edit next
   time (harmless - one extra backup and a note - but misleading).
 Self test without SolidWorks: `python scripts/filesafe.py` -> `FILESAFE TEST OK`.
-Still open: pulling hand-changed values back into the parameter file automatically (today: `partsync` reports them
-and `--adopt` writes them), and `USER_`-prefixed features left alone by update mode.
+
+## Two-way values: a value changed in SolidWorks flows back to the parameter file (verified 2026-11-11)
+The engineer may change a global in Tools > Equations instead of the parameter file. On the next run:
+```python
+P = paramfile.values(PARAMS_TXT)
+pb = PartBuilder(sw, P, path=PATH, mode="update")
+rep = partsync.check_open(pb.doc, PATH)                       # what changed by hand since the last script write
+pull, same, conflict = partsync.classify_values(rep["globals_changed"], P)
+if conflict or not partsync.additive_only(rep):
+    ...stop and ask (print partsync.describe(rep))            # both sides changed, or something was deleted
+for name, (old, new) in pull.items():
+    paramfile.set_value(PARAMS_TXT, name, new, "from SolidWorks")   # note kept: '... | from SolidWorks <date>: 100 -> 120'
+    P[name] = pb.params[name] = new
+build(pb); pb.push_globals(); pb.save(PATH)                   # nothing is pushed back over the human's value
+```
+Three-way rule (last written by the script / in the file now / in the parameter file):
+only the file changed -> **pull** (the human wins, the parameter file is updated, then rerun so every other part
+that uses the value follows); parameter file already equal -> nothing; both changed or not a parameter ->
+**conflict**, stop and ask. `paramfile.py` is the generic text format (`NAME = value ; note`, `[GROUP]`,
+`[SET name]`), with `set_value` rewriting one line in place.
+
+## Hand-added features are kept
+Update mode skips features that exist and appends new ones; features a human added stay (test: a hand-made hole
+survived the next script run, and the run after it reported no drift). Ask people to prefix their own features
+(`USER_...`) so the tree shows who owns what. The geometry check (`verify`: bbox / volume against the hand
+calculation) no longer describes a part with hand features - say so in the report instead of failing or hiding it.
+Deleted features, edited equations and changed suppression are NOT additive: stop and ask.

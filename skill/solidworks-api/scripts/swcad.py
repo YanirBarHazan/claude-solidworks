@@ -508,9 +508,30 @@ class PartBuilder:
             self.doc.ShowConfiguration2(next(n for n in names if n != cfg))
         return bool(self.doc.DeleteConfiguration2(cfg))
 
-    def verify(self, expect, params=None, edit=None, tol_mm=1e-3, tol_vol=1e-3):
+    def open_sketches(self):
+        """Sketches that are not fully defined: [(name, status)]. An under-defined sketch moves when a value
+        changes somewhere else - the classic reason a model 'explodes' in someone else's hands."""
+        names = {2: "under defined", 4: "over defined", 5: "no solution", 6: "invalid", 1: "unknown"}
+        out, seen = [], set()
+
+        def visit(f, sub):
+            while f is not None:
+                f = T(f, "IFeature")
+                if f.Name not in seen:
+                    seen.add(f.Name)
+                    if f.GetTypeName2() in ("ProfileFeature", "3DProfileFeature"):
+                        st = T(f.GetSpecificFeature2(), "ISketch").GetConstrainedStatus()
+                        if st != 3:
+                            out.append((f.Name, names.get(st, str(st))))
+                    visit(f.GetFirstSubFeature(), True)
+                f = f.GetNextSubFeature() if sub else f.GetNextFeature()
+        visit(self.doc.FirstFeature(), False)
+        return out
+
+    def verify(self, expect, params=None, edit=None, tol_mm=1e-3, tol_vol=1e-3, sketches=True):
         """ROADMAP 4 verify_part: rebuild errors, one body, bbox (sorted extents) and volume vs expect(params),
-        optional edit test (name, value) that is restored. Returns a dict; raises AssertionError on a failure."""
+        optional edit test (name, value) that is restored; every sketch fully defined (sketches=False to skip).
+        Returns a dict; raises AssertionError on a failure."""
         p = dict(self.params if params is None else params)
 
         def measure(pp, tag):
@@ -527,6 +548,10 @@ class PartBuilder:
                                      f"expect={[round(s, 3) for s in sorted(esize)]} vol={vol:.1f} expect={evol:.1f}")
             return size, vol
         size, vol = measure(p, "check")
+        if sketches:
+            bad = self.open_sketches()
+            if bad:
+                raise AssertionError(f"sketches not fully defined: {bad}")
         if edit:
             k, v = edit
             self.set_param(k, v)

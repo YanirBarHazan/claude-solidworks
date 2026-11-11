@@ -12,3 +12,8 @@ Run these after each part, print the results, and stop on any failure:
    Sweep moving parts through every position (`comp.Transform2`, rebuild, check).
 6. Look at the pictures (`picture()`), and question what you see — the automatic checks once passed
    a leg joined to its wheel by a 1 mm sliver; only the side view showed it.
+
+## Fully defined sketches (gate in `verify`, 2026-11-11)
+`PartBuilder.verify` now fails when any sketch is not fully defined (`pb.open_sketches()` lists them; pass
+`sketches=False` only for an imported / hand-made sketch you report to the user). An under-defined sketch is why a
+model "explodes" when someone else changes a value. `scripts/audit.py` reports the same for any existing part.

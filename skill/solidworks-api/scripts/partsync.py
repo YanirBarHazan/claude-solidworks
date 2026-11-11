@@ -126,6 +126,35 @@ def adopt_globals(params_py, changes):
     open(params_py, "w", encoding="utf-8").write(s)
 
 
+def classify_values(changes, params, tol=1e-6):
+    """Three-way decision for globals a human changed in SolidWorks.
+    changes: rep["globals_changed"] = {name: [last written by the script, value in the file now]};
+    params: the current parameter values. ->
+      pull     {name: (old, new)}   only the file changed (params still equal the last written value):
+                                    the human's value wins - write it into the parameter file, then rerun so
+                                    every other part that uses it follows
+      same     [names]              params already hold the file's value
+      conflict {name: (last, file, params)}  both sides changed, or the name is not a parameter: stop and ask"""
+    pull, same, conflict = {}, [], {}
+    for name, (last, now) in changes.items():
+        cur = params.get(name)
+        if cur is None or last is None:
+            conflict[name] = (last, now, cur)
+        elif abs(cur - now) <= tol * max(1.0, abs(now)):
+            same.append(name)
+        elif abs(cur - last) <= tol * max(1.0, abs(last)):
+            pull[name] = (last, now)
+        else:
+            conflict[name] = (last, now, cur)
+    return pull, same, conflict
+
+
+def additive_only(rep):
+    """True when the hand edits are only added features and / or changed global values (nothing deleted,
+    no equation or suppression changed): the script can keep them."""
+    return not (rep.get("deleted_features") or rep.get("equations_changed") or rep.get("suppression_changed"))
+
+
 def decide(sw, path, params_py=None, argv=None):
     """Choose build vs update for one part from its drift and the command-line flags.
     Exits with EXIT_NEEDS_USER and a report when the choice must come from the user."""

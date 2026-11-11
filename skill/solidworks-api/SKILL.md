@@ -66,7 +66,8 @@ absorbs the API's quirks, design intent decided before geometry, and never trust
 ## Library (`scripts/`)
 - `sw_common.py` - connect, early binding, typed wrapper `T()`, version guard, templates, save, safe closing.
 - `swcad.py` - `PartBuilder`: planes, sketches, extrude / cut, linked equations, update mode, checks, verified save.
-- `partsync.py` - manifests, hand-edit detection, build / update decision. `filesafe.py` - backup and
+- `paramfile.py` - the parameter text file (`NAME = value ; note`, groups, value sets, in-place rewrite).
+- `partsync.py` - manifests, hand-edit detection, three-way value decision, build / update decision. `filesafe.py` - backup and
   change detection for any file before it is overwritten.
 - `asmtools.py` - placement, mates on named planes, mate / transform checks, interference, linear patterns.
 - `patterns.py` - turns a placement list into seeds + linear patterns. `hygiene.py` - stale locks, stall detector.
