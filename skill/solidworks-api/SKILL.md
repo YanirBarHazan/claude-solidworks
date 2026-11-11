@@ -56,6 +56,7 @@ absorbs the API's quirks, design intent decided before geometry, and never trust
 | Checking a part or assembly | `references/verification.md` |
 | Assemblies, mates, patterns, > 30 components, configurations | `references/assemblies.md` (start at section 13) |
 | Judging an existing model (how editable is it?) | `scripts/audit.py` (read-only, one line + JSON) |
+| Materials, mass, weight / material properties for BOM and title block | `references/materials_properties.md` |
 | Production drawings | `references/drawings.md`, `scripts/drawtools.py` |
 | 3D-printed parts, enclosures, snap fits, print files | `references/fdm_printing.md`, `references/engineering.md` |
 | A SolidWorks error or a version question | `references/version_notes.md` |
@@ -65,7 +66,8 @@ absorbs the API's quirks, design intent decided before geometry, and never trust
 ## Library (`scripts/`)
 - `sw_common.py` - connect, early binding, typed wrapper `T()`, version guard, templates, save, safe closing.
 - `swcad.py` - `PartBuilder`: planes, sketches, extrude / cut, linked equations, update mode, checks, verified save.
-- `partsync.py` - manifests, hand-edit detection, build / update decision.
+- `partsync.py` - manifests, hand-edit detection, build / update decision. `filesafe.py` - backup and
+  change detection for any file before it is overwritten.
 - `asmtools.py` - placement, mates on named planes, mate / transform checks, interference, linear patterns.
 - `patterns.py` - turns a placement list into seeds + linear patterns. `hygiene.py` - stale locks, stall detector.
 - `audit.py` - model health / editability score of any existing part or assembly.

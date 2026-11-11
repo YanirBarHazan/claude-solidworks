@@ -366,6 +366,47 @@ class PartBuilder:
     def cut(self, sketch, depth, name, reverse=False, mode="blind"):
         return self._extrude(sketch, depth, reverse, True, mode, name)
 
+    # ---------- material, mass, linked properties ----------
+    def material(self, name, database="SOLIDWORKS Materials"):
+        """Apply a real SolidWorks material (density -> mass, appearance, simulation data). Raises when the name
+        is not in the database: material names are exact ("Plain Carbon Steel", "AISI 304", "1060 Alloy")."""
+        self.part.SetMaterialPropertyName2("", database, name)
+        got = self.part.GetMaterialPropertyName2("", "")
+        got = got[0] if isinstance(got, tuple) else got
+        if got != name:
+            raise RuntimeError(f"material {name!r} not applied (got {got!r}): check the exact name in {database}")
+        self.doc.ForceRebuild3(False)
+        return name
+
+    def mass(self):
+        """(mass kg, density kg/m3) from SolidWorks mass properties. Meaningful only after material()."""
+        mp = self.doc.Extension.CreateMassProperty()
+        return mp.Mass, mp.Density
+
+    def check_mass(self, density, tol=0.005):
+        """Mass must equal volume x the density you EXPECT for the material (a wrong material or unit fails here).
+        Returns (mass kg, expected kg)."""
+        m, rho = self.mass()
+        want = self.volume() * 1e-9 * density
+        if abs(m - want) > tol * want or abs(rho - density) > tol * density:
+            raise RuntimeError(f"mass {m:.4f} kg (density {rho:.0f}) != expected {want:.4f} kg (density {density:.0f})")
+        return m, want
+
+    def link_properties(self, weight="Weight", material="Material"):
+        """Custom properties that FOLLOW the model (title block, BOM, PDM card): weight = SW-Mass, material =
+        SW-Material. Call after the first save (the expression holds the file name). Returns the evaluated values; the
+        weight is in the DOCUMENT's mass unit (MMGS template: grams - 7.8 kg reads "7800.00")."""
+        cpm = T(self.doc.Extension.CustomPropertyManager(""), "ICustomPropertyManager")
+        title = os.path.basename(self.doc.GetPathName()) or self.doc.GetTitle()
+        out = {}
+        for prop, key in ((weight, "SW-Mass"), (material, "SW-Material")):
+            if not prop:
+                continue
+            cpm.Add3(prop, C.swCustomInfoText, f'"{key}@{title}"', C.swCustomPropertyReplaceValue)
+            r = cpm.Get6(prop, False)
+            out[prop] = r[2] if isinstance(r, tuple) and len(r) > 2 else r
+        return out
+
     # ---------- checks ----------
     def rebuild_errors(self, doc=None, skip_transient=True):
         """Feature errors. In a live session SolidWorks flags the Equations folder with error 51

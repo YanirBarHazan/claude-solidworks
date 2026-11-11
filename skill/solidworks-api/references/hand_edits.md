@@ -26,3 +26,16 @@ pb = PartBuilder(sw, P, path=PATH, mode=mode)
 - `--no-link` keeps the globals inside each part instead of linking `shared_params.txt` (pitfall 41).
 - Long builds: `SWCAD_TRACE=1` prints one timestamped line per feature - log it to a file and treat
   2-3 minutes without a new line as a hang (pitfall 42).
+
+## Any file, not only parts: `scripts/filesafe.py` (verified 2026-11-11)
+Assemblies, drawings and text files have no manifest. `filesafe` records every file the library writes (size +
+modified time, `<folder>/.swstate.json`) and `sw_common.save_as` / `save_doc` use it:
+- before saving over a file that changed since the script wrote it (or that it never wrote): the file is copied
+  to `<parent of the CAD folder>/_backup/<timestamp>/` (outside the CAD folder: Pack and Go / PDM do not see it);
+- policy `SW_ON_HAND_EDIT=backup` (default): keep the copy, print one note line, continue;
+  `SW_ON_HAND_EDIT=stop`: raise `filesafe.HandEdit` - ask the user (keep mine / adopt / overwrite).
+- Save documents through `save_as` / `save_doc`, not a raw `Save3`: an unrecorded save looks like a hand edit next
+  time (harmless - one extra backup and a note - but misleading).
+Self test without SolidWorks: `python scripts/filesafe.py` -> `FILESAFE TEST OK`.
+Still open: pulling hand-changed values back into the parameter file automatically (today: `partsync` reports them
+and `--adopt` writes them), and `USER_`-prefixed features left alone by update mode.

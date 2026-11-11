@@ -107,11 +107,27 @@ def select(doc, name, typ, append=False, mark=0, x=0.0, y=0.0, z=0.0):
 
 
 def save_as(doc, path):
+    """Save a document to `path`. A file there that someone changed since the script last wrote it is copied to
+    the backup folder first (filesafe: never overwrite human work silently)."""
+    import filesafe
+    filesafe.before_write(path)
     # swSaveAsCurrentVersion=0, swSaveAsOptions_Silent=1; in/out ints come back as a tuple
     ok, errs, warns = doc.Extension.SaveAs(path, 0, 1, None, 0, 0)
     if not ok or not os.path.exists(path):
         raise RuntimeError(f"SaveAs failed {path}: err={errs} warn={warns}")
+    filesafe.record(path)
     return path
+
+
+def save_doc(doc):
+    """Save an already-saved document in place (Save3) and record it, so the next write does not see a hand edit."""
+    import filesafe
+    r = doc.Save3(1, 0, 0)
+    ok = r[0] if isinstance(r, tuple) else r
+    if not ok:
+        raise RuntimeError(f"Save3 failed {doc.GetPathName()}: {r}")
+    filesafe.record(doc.GetPathName())
+    return r
 
 
 def close_out_docs(sw):
